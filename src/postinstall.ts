@@ -23,6 +23,15 @@ async function main(): Promise<void> {
   if (process.env.npm_config_global === 'true') return;
 
   const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+  // When npm installs this package from a git URL it first clones the repo and
+  // runs `npm install --force` inside the clone to "prepare" it. During that
+  // inner install our postinstall fires with INIT_CWD pointing at the caller's
+  // shell directory — scaffolding there would be an unintended side-effect.
+  // The reliable signal that we are the git clone being prepared (not a
+  // consumer dep) is that src/ still lives next to dist/ in packageRoot.
+  if (existsSync(join(packageRoot, 'src'))) return;
+
   const target = resolve(initCwd);
 
   // Skip when installing inside this package itself (local development).
