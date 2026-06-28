@@ -10,18 +10,36 @@ a Jira ticket end-to-end and communicate with each other using **TOON**
 
 ## Install
 
+Add it as a project dependency — the customization files are scaffolded into
+`.github/` **automatically on install** so Copilot can use them right away:
+
 ```bash
-npm install -g agentic-workflow-cli
+npm install --save-dev @nvkxt26/agentic-workflow-cli
+```
+
+On install a `postinstall` hook writes the agents, skills, instructions, and
+prompts into the host project's `.github/`, plus a `.agentic-workflow.json` config
+and a `.env.example`. An existing `.agentic-workflow.json` is preserved (your
+docs dir and model overrides are kept); template files are refreshed on upgrade.
+
+> Opt out of auto-scaffolding with `npm install --ignore-scripts`, then run
+> `npx agentic-workflow init` manually. Global installs (`-g`) do **not**
+> auto-scaffold, since there is no target project.
+
+You can also install the CLI globally to use the commands anywhere:
+
+```bash
+npm install -g @nvkxt26/agentic-workflow-cli
 # or run without installing:
-npx agentic-workflow-cli init
+npx @nvkxt26/agentic-workflow-cli init
 ```
 
 ## Quick start
 
 ```bash
-# inside the repo you want to add the workflow to
-agentic-workflow init      # interactive: docs dir, review loops, output mode, credentials
-agentic-workflow list      # show agents + skills and their default models
+# (optional) re-run to configure docs dir, review loops, output mode, credentials
+npx agentic-workflow init
+npx agentic-workflow list      # show agents + skills and their default models
 ```
 
 Then in VS Code: open Copilot Chat, select the **SDLC Orchestrator** agent (or run
