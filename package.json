@@ -1,6 +1,6 @@
 {
   "name": "@nvkxt26/agentic-workflow-cli",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Installable agentic SDLC workflow CLI providing GitHub Copilot skills, persona agents, and an orchestrator that communicate via TOON/caveman format",
   "main": "dist/index.js",
   "scripts": {
