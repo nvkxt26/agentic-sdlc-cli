@@ -1,10 +1,8 @@
-import { writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { input, select, password, confirm } from '@inquirer/prompts';
 import pc from 'picocolors';
 import { defaultConfig, writeConfig, readConfig } from '../config.js';
-import { install, installGlobal, writeEnvExample } from '../installer.js';
+import { install, installGlobal, setGlobalEnvVars, shellProfilePath } from '../installer.js';
 import { globalPromptsDir, globalSkillsDir } from '../paths.js';
 import type { AgenticConfig } from '../types.js';
 
@@ -59,24 +57,6 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     config.docsDir = flags.docsDir;
   }
 
-  // Collect env var values (requirement #5). Stored in gitignored .env only.
-  const envValues: Record<string, string> = {};
-  if (!flags.yes) {
-    console.log(
-      pc.dim(
-        '\nProvide credentials for deterministic skills (Jira/Confluence/Figma).\n' +
-          'Leave blank to skip — values are written to a gitignored .env, never committed.\n',
-      ),
-    );
-    for (const name of config.envVars) {
-      const isSecret = /TOKEN|SECRET|PASSWORD|KEY/i.test(name);
-      const value = isSecret
-        ? await password({ message: `${name} (hidden, optional)`, mask: true })
-        : await input({ message: `${name} (optional)`, default: '' });
-      if (value && value.trim()) envValues[name] = value.trim();
-    }
-  }
-
   const written: string[] = [];
 
   // Install all templates into .github/.
@@ -87,17 +67,54 @@ export async function initCommand(flags: InitFlags): Promise<void> {
   await writeConfig(cwd, config);
   written.push(join(cwd, '.agentic-workflow.json'));
 
-  // .env.example always; .env only if values were given.
-  await writeEnvExample(cwd, config.envVars, written);
-  if (Object.keys(envValues).length > 0) {
-    const envPath = join(cwd, '.env');
-    const body =
-      Object.entries(envValues)
-        .map(([k, v]) => `${k}=${v}`)
-        .join('\n') + '\n';
-    await writeFile(envPath, body, 'utf8');
-    written.push(envPath);
-    await ensureGitignored(cwd, '.env');
+  // Global env var setup for deterministic skills (Jira/Confluence/Figma).
+  if (!flags.yes) {
+    const alreadySet = config.envVars.filter((n) => !!process.env[n]);
+    const missing = config.envVars.filter((n) => !process.env[n]);
+
+    if (alreadySet.length > 0) {
+      console.log(
+        pc.green('\n✓ Already set in environment: ') + pc.dim(alreadySet.join(', ')),
+      );
+    }
+
+    if (missing.length > 0) {
+      console.log(
+        pc.dim(
+          `\nThe following credentials are not yet in your environment:\n  ${missing.join(', ')}\n` +
+            'Enter values to write them to your shell profile (global), or leave blank to skip.\n',
+        ),
+      );
+
+      const toWrite: Record<string, string> = {};
+      for (const name of missing) {
+        const isSecret = /TOKEN|SECRET|PASSWORD|KEY/i.test(name);
+        const value = isSecret
+          ? await password({ message: `${name} (hidden, optional)`, mask: true })
+          : await input({ message: `${name} (optional)`, default: '' });
+        if (value?.trim()) toWrite[name] = value.trim();
+      }
+
+      if (Object.keys(toWrite).length > 0) {
+        if (process.platform === 'win32') {
+          console.log(pc.dim('\nOn Windows, set environment variables via PowerShell:'));
+          for (const [name, value] of Object.entries(toWrite)) {
+            console.log(pc.dim(`  [Environment]::SetEnvironmentVariable("${name}", "${value}", "User")`));
+          }
+        } else {
+          const { profilePath } = await setGlobalEnvVars(toWrite);
+          console.log(pc.green(`\n✓ Credentials written to ${pc.cyan(profilePath)}`));
+          console.log(pc.dim(`  Reload now: source ${profilePath}`));
+        }
+      } else {
+        const profile =
+          process.platform === 'win32' ? '$PROFILE (PowerShell)' : (shellProfilePath() || '~/.profile');
+        console.log(pc.dim('\nSkipped. To set credentials later, add to ' + profile + ':'));
+        for (const name of missing) {
+          console.log(pc.dim(`  export ${name}="your-value-here"`));
+        }
+      }
+    }
   }
 
   // Global install: copy prompts/instructions to VS Code user profile and skills to ~/.copilot/skills/
@@ -126,15 +143,4 @@ export async function initCommand(flags: InitFlags): Promise<void> {
   );
 }
 
-async function ensureGitignored(cwd: string, entry: string): Promise<void> {
-  const gi = join(cwd, '.gitignore');
-  let body = '';
-  if (existsSync(gi)) {
-    const { readFile } = await import('node:fs/promises');
-    body = await readFile(gi, 'utf8');
-    if (body.split(/\r?\n/).some((l) => l.trim() === entry)) return;
-    if (!body.endsWith('\n')) body += '\n';
-  }
-  body += `${entry}\n`;
-  await writeFile(gi, body, 'utf8');
-}
+
