@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile, readdir, chmod } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { homedir } from 'node:os';
 import { templatesDir, GITHUB_DIR, globalPromptsDir, globalSkillsDir } from './paths.js';
 import { MODEL_TIERS } from './models.js';
 import { AGENTS, SKILLS, INSTRUCTIONS, PROMPTS } from './registry.js';
@@ -204,17 +205,66 @@ export async function installGlobal(config: AgenticConfig): Promise<GlobalInstal
   return { written };
 }
 
+/**
+ * Detect the user's shell profile file path.
+ * Returns an empty string on Windows (handled separately by the caller).
+ */
+export function shellProfilePath(): string {
+  if (process.platform === 'win32') return '';
+  const home = homedir();
+  const shell = process.env['SHELL'] ?? '';
+  if (shell.endsWith('zsh')) return join(home, '.zshrc');
+  if (shell.endsWith('bash')) {
+    return process.platform === 'darwin'
+      ? join(home, '.bash_profile')
+      : join(home, '.bashrc');
+  }
+  return join(home, '.profile');
+}
+
+/**
+ * Write or update `export VAR="value"` lines in the user's shell profile.
+ * Existing entries are updated in-place; new entries are appended.
+ * Returns the profile path that was written.
+ */
+export async function setGlobalEnvVars(
+  vars: Record<string, string>,
+): Promise<{ profilePath: string }> {
+  const profilePath = shellProfilePath();
+  let body = existsSync(profilePath) ? await readFile(profilePath, 'utf8') : '';
+  if (body.length > 0 && !body.endsWith('\n')) body += '\n';
+
+  for (const [key, value] of Object.entries(vars)) {
+    // JSON.stringify gives us correct double-quote escaping (\" for quotes, \\ for backslashes).
+    const safe = JSON.stringify(value).slice(1, -1);
+    const exportLine = `export ${key}="${safe}"`;
+    const regex = new RegExp(`^export ${key}=.*$`, 'm');
+    if (regex.test(body)) {
+      body = body.replace(regex, exportLine);
+    } else {
+      body += `${exportLine}\n`;
+    }
+  }
+
+  await writeFile(profilePath, body, 'utf8');
+  return { profilePath };
+}
+
 /** Write a .env.example listing every env var the install needs. */
 export async function writeEnvExample(
   cwd: string,
   envVars: string[],
   written: string[],
 ): Promise<void> {
+  const profile =
+    process.platform === 'win32' ? '$PROFILE (PowerShell)' : shellProfilePath() || '~/.profile';
   const lines = [
-    '# Environment variables for agentic-workflow deterministic skills.',
-    '# Copy to .env (gitignored) and fill in real values.',
-    '',
-    ...envVars.map((v) => `${v}=`),
+    '# Environment variables required by agentic-workflow deterministic skills.',
+    `# Add these exports to your shell profile (${profile}):`,
+    '#',
+    ...envVars.map((v) => `#   export ${v}="your-value-here"`),
+    '#',
+    '# Or run `npx agentic-workflow init` to set them interactively.',
     '',
   ];
   const dest = join(cwd, '.env.example');
