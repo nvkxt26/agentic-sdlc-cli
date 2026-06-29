@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile, readdir, chmod } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { templatesDir, GITHUB_DIR } from './paths.js';
+import { templatesDir, GITHUB_DIR, globalPromptsDir, globalSkillsDir } from './paths.js';
 import { MODEL_TIERS } from './models.js';
 import { AGENTS, SKILLS, INSTRUCTIONS, PROMPTS } from './registry.js';
 import type {
@@ -124,6 +124,80 @@ export async function install(opts: InstallOptions): Promise<InstallResult> {
       const src = join(templatesDir(), p.template);
       const dest = join(opts.cwd, GITHUB_DIR, 'prompts', p.outFile);
       await copyRendered(src, dest, 'reasoning-max', opts.config, written);
+    }
+  }
+
+  // Always-on entrypoint — VS Code loads this unconditionally.
+  await copyRendered(
+    join(templatesDir(), 'copilot-instructions.md'),
+    join(opts.cwd, GITHUB_DIR, 'copilot-instructions.md'),
+    'balanced',
+    opts.config,
+    written,
+  );
+
+  return { written };
+}
+
+export interface GlobalInstallResult {
+  written: string[];
+}
+
+/**
+ * Copy prompts and instructions to the VS Code user prompts directory, and
+ * skills to ~/.copilot/skills/ so Copilot discovers them globally without
+ * a project-level .github/ folder.
+ *
+ * Locations (platform-aware via globalPromptsDir / globalSkillsDir):
+ *   macOS   prompts → ~/Library/Application Support/Code/User/prompts/
+ *   macOS   skills  → ~/.copilot/skills/
+ *   Windows prompts → %APPDATA%\Code\User\prompts\
+ *   Linux   prompts → ~/.config/Code/User/prompts/
+ */
+export async function installGlobal(config: AgenticConfig): Promise<GlobalInstallResult> {
+  const written: string[] = [];
+  const promptsTarget = globalPromptsDir();
+  const skillsTarget = globalSkillsDir();
+
+  // Prompts → VS Code user prompts dir
+  for (const p of PROMPTS) {
+    const src = join(templatesDir(), p.template);
+    const dest = join(promptsTarget, p.outFile);
+    await copyRendered(src, dest, 'reasoning-max', config, written);
+  }
+
+  // Instructions → VS Code user prompts dir (Copilot picks up .instructions.md from here)
+  for (const ins of INSTRUCTIONS) {
+    const src = join(templatesDir(), ins.template);
+    const dest = join(promptsTarget, ins.outFile);
+    await copyRendered(src, dest, 'balanced', config, written);
+  }
+
+  // Skills → ~/.copilot/skills/{id}/
+  for (const skill of SKILLS) {
+    const tier = effectiveTier(skill.id, skill.tier, config);
+    const srcDir = join(templatesDir(), 'skills', skill.templateDir);
+    const destDir = join(skillsTarget, skill.id);
+
+    await copyRendered(
+      join(srcDir, 'SKILL.md'),
+      join(destDir, 'SKILL.md'),
+      tier,
+      config,
+      written,
+    );
+
+    const scriptsSrc = join(srcDir, 'scripts');
+    if (existsSync(scriptsSrc)) {
+      const files = await readdir(scriptsSrc);
+      for (const f of files) {
+        const raw = await readFile(join(scriptsSrc, f), 'utf8');
+        const out = join(destDir, 'scripts', f);
+        await mkdir(dirname(out), { recursive: true });
+        await writeFile(out, raw, 'utf8');
+        if (f.endsWith('.mjs')) await chmod(out, 0o755);
+        written.push(out);
+      }
     }
   }
 

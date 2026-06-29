@@ -22,6 +22,10 @@ program
   .option('-y, --yes', 'accept defaults, skip prompts')
   .option('-d, --docs-dir <dir>', 'per-ticket docs directory')
   .option('-C, --cwd <dir>', 'target project directory (relative to current)')
+  .option(
+    '--global',
+    'also copy prompts + instructions to VS Code user profile and skills to ~/.copilot/skills/',
+  )
   .action((opts) => initCommand(opts));
 
 program
