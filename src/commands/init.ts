@@ -4,13 +4,15 @@ import { join } from 'node:path';
 import { input, select, password, confirm } from '@inquirer/prompts';
 import pc from 'picocolors';
 import { defaultConfig, writeConfig, readConfig } from '../config.js';
-import { install, writeEnvExample } from '../installer.js';
+import { install, installGlobal, writeEnvExample } from '../installer.js';
+import { globalPromptsDir, globalSkillsDir } from '../paths.js';
 import type { AgenticConfig } from '../types.js';
 
 interface InitFlags {
   yes?: boolean;
   docsDir?: string;
   cwd?: string;
+  global?: boolean;
 }
 
 /** Interactive (or flag-driven) installer. */
@@ -98,13 +100,25 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     await ensureGitignored(cwd, '.env');
   }
 
+  // Global install: copy prompts/instructions to VS Code user profile and skills to ~/.copilot/skills/
+  if (flags.global) {
+    const globalResult = await installGlobal(config);
+    written.push(...globalResult.written);
+  }
+
   console.log(pc.green(`\n✓ Installed ${written.length} files.`));
   console.log(pc.dim('Key locations:'));
-  console.log(`  ${pc.cyan('.github/agents/')}        SDLC orchestrator + persona agents`);
-  console.log(`  ${pc.cyan('.github/skills/')}        deterministic skills + scripts`);
-  console.log(`  ${pc.cyan('.github/instructions/')}  TOON / caveman / git / docs rules`);
-  console.log(`  ${pc.cyan('.github/prompts/')}       resolve-ticket entry point`);
-  console.log(`  ${pc.cyan(config.docsDir + '/')}            per-ticket artifacts land here`);
+  console.log(`  ${pc.cyan('.github/copilot-instructions.md')}  always-on Copilot entrypoint`);
+  console.log(`  ${pc.cyan('.github/agents/')}                  SDLC orchestrator + persona agents`);
+  console.log(`  ${pc.cyan('.github/skills/')}                  deterministic skills + scripts`);
+  console.log(`  ${pc.cyan('.github/instructions/')}            TOON / caveman / git / docs rules`);
+  console.log(`  ${pc.cyan('.github/prompts/')}                 resolve-ticket entry point`);
+  console.log(`  ${pc.cyan(config.docsDir + '/')}                       per-ticket artifacts land here`);
+  if (flags.global) {
+    console.log(pc.dim('\nGlobal install:'));
+    console.log(`  ${pc.cyan(globalPromptsDir())}  prompts + instructions`);
+    console.log(`  ${pc.cyan(globalSkillsDir())}        skills`);
+  }
   console.log(
     pc.dim(
       '\nNext: open Copilot Chat, pick the "SDLC Orchestrator" agent, and run /resolve-ticket.',
