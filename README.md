@@ -1,5 +1,7 @@
 # agentic-workflow-cli
 
+![Latest Release](https://img.shields.io/badge/release-v1.0.0-blue)
+
 An installable **agentic SDLC workflow CLI**. It installs a set of GitHub Copilot
 customizations — an orchestrator, persona agents, deterministic skills, and
 instruction files — into a target project's `.github/` folder. The agents resolve
