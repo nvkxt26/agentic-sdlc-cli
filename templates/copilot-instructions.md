@@ -4,11 +4,12 @@ This project uses the **agentic-workflow** system. The rules below apply to ever
 
 ## Personas
 
-Six agents are installed in `.github/agents/`. Select the appropriate persona from the Copilot Chat agent picker, or use the SDLC Orchestrator to run the full pipeline:
+Seven agents are installed in `.github/agents/`. Select the appropriate persona from the Copilot Chat agent picker, or use the SDLC Orchestrator to run the full pipeline:
 
 | Agent | Role |
 |---|---|
 | SDLC Orchestrator | Start here — sequences the full ticket-resolution pipeline |
+| Context Builder | Maintains codebase context on the default branch (incremental, diff-based) |
 | Product Owner | Gathers requirements from Jira, Confluence, and Figma |
 | Architect | Turns requirements into a concrete implementation plan |
 | Senior Developer | Applies the plan (inline comments or real code) |
@@ -24,3 +25,4 @@ Start with the `/resolve-ticket` prompt.
 - **Git conventions** — branch names and commit messages follow a fixed pattern. See `.github/instructions/git-conventions.instructions.md`.
 - **Per-ticket docs** — create `{{DOCS_DIR}}/<JIRA>/` for every ticket. See `.github/instructions/workflow-docs.instructions.md`.
 - **Output mode** — default developer output is `{{DEFAULT_OUTPUT_MODE}}`. See `.github/instructions/output-mode.instructions.md`.
+- **Cache + context** — reuse fetched data via the cache skill and plan against generated context. See `.github/instructions/caching.instructions.md`. Generated state in `{{CONTEXT_DIR}}/` and `{{CACHE_DIR}}/` is git-ignored.

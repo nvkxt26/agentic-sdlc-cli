@@ -10,6 +10,8 @@ export function defaultConfig(): AgenticConfig {
   return {
     version: CONFIG_VERSION,
     docsDir: 'docs',
+    contextDir: '.agentic/context',
+    cacheDir: '.agentic/cache',
     reviewLoops: 5,
     defaultOutputMode: 'comments',
     envVars: [

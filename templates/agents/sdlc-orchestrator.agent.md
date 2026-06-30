@@ -17,6 +17,7 @@ Default model tier for this agent: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_F
 3. **Docs folder per ticket.** On start, create `{{DOCS_DIR}}/<JIRA-TICKET>/` and store every artifact there (requirements, plan, figma, review logs). See `workflow-docs.instructions.md`.
 4. **Git conventions.** Branch `<feat|fix|release|chore>/<JIRA>_<2-3 word desc>`; commit `[JIRA-TICKET]: <description>`. See `git-conventions.instructions.md`.
 5. **Output mode.** Default is `{{DEFAULT_OUTPUT_MODE}}` — write COMMENTS marking where code goes, unless the user overrides to `code`. See `output-mode.instructions.md`.
+6. **Cache + context.** Reuse the cache skill for expensive fetches and have the architect plan against generated context. See `caching.instructions.md`. `{{CONTEXT_DIR}}/` and `{{CACHE_DIR}}/` are git-ignored.
 
 ## Workflow
 
@@ -24,8 +25,9 @@ Ask for the Jira ticket id if not provided. Then proceed:
 
 ```
 0. SETUP   → create {{DOCS_DIR}}/<JIRA>/, create branch via the git-branch skill
+0b. CONTEXT → context-builder agent: refresh {{CONTEXT_DIR}}/ from default-branch diff (context-sync skill)
 1. PRODUCT → product agent: gather Jira details (+Figma). Output: requirements.toon
-2. ARCHITECT → architect agent: implementation plan. Output: plan.toon
+2. ARCHITECT → architect agent: plan against context (reuse cache). Output: plan.toon
 3. DEVELOP → senior-developer agent: design comments (default) or code. Output: dev-report.toon
 4. QA      → qa agent: unit/integration tests. Output: qa-report.toon
 5. REVIEW  → code-reviewer agent: loop up to {{REVIEW_LOOPS}}x until clean. Output: review-log.toon
