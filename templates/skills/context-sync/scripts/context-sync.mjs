@@ -88,7 +88,9 @@ let headCommit;
 try {
   headCommit = git(['rev-parse', branch]);
 } catch {
-  fail(`cannot resolve branch "${branch}"`);
+  // In detached-HEAD clones, local "<branch>" may not exist; fall back to origin/<branch>.
+  if (branch.includes('/')) fail(`cannot resolve branch "${branch}"`);
+  try { headCommit = git(['rev-parse', `origin/${branch}`]); } catch { fail(`cannot resolve branch "${branch}" (or origin/${branch})`); }
 }
 
 // ---- --mark mode ------------------------------------------------------------
