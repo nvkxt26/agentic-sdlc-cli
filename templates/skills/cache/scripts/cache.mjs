@@ -139,7 +139,7 @@ switch (cmd) {
   }
   case 'list': {
     const rows = db
-      .prepare('SELECT key, created_at, ttl, length(value) AS bytes FROM cache WHERE scope = ? ORDER BY created_at DESC')
+      .prepare('SELECT key, created_at, ttl, length(CAST(value AS BLOB)) AS bytes FROM cache WHERE scope = ? ORDER BY created_at DESC')
       .all(scope)
       .filter((r) => !expired(r))
       .map((r) => ({ key: r.key, ageSec: now - r.created_at, ttl: r.ttl, bytes: r.bytes }));
