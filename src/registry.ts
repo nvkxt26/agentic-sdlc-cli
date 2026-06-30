@@ -31,13 +31,23 @@ export const AGENTS: AgentDefinition[] = [
     order: 1,
   },
   {
+    id: 'context-builder',
+    name: 'Context Builder',
+    description:
+      'Maintains codebase context on the default branch; updates it from the diff since the last indexed commit.',
+    tier: 'balanced',
+    template: 'agents/context-builder.agent.md',
+    outFile: 'context-builder.agent.md',
+    order: 2,
+  },
+  {
     id: 'architect',
     name: 'Architect',
     description: 'Turns gathered requirements into a concrete implementation plan.',
     tier: 'reasoning-max',
     template: 'agents/architect.agent.md',
     outFile: 'architect.agent.md',
-    order: 2,
+    order: 3,
   },
   {
     id: 'senior-developer',
@@ -47,7 +57,7 @@ export const AGENTS: AgentDefinition[] = [
     tier: 'coding',
     template: 'agents/senior-developer.agent.md',
     outFile: 'senior-developer.agent.md',
-    order: 3,
+    order: 4,
   },
   {
     id: 'qa',
@@ -56,7 +66,7 @@ export const AGENTS: AgentDefinition[] = [
     tier: 'coding',
     template: 'agents/qa.agent.md',
     outFile: 'qa.agent.md',
-    order: 4,
+    order: 5,
   },
   {
     id: 'code-reviewer',
@@ -66,16 +76,6 @@ export const AGENTS: AgentDefinition[] = [
     tier: 'reasoning-max',
     template: 'agents/code-reviewer.agent.md',
     outFile: 'code-reviewer.agent.md',
-    order: 5,
-  },
-  {
-    id: 'context-builder',
-    name: 'Context Builder',
-    description:
-      'Maintains codebase context on the default branch; updates it from the diff since the last indexed commit.',
-    tier: 'balanced',
-    template: 'agents/context-builder.agent.md',
-    outFile: 'context-builder.agent.md',
     order: 6,
   },
 ];

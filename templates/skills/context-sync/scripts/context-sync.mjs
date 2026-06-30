@@ -158,7 +158,7 @@ console.log(
     contextSync: {
       branch,
       mode,
-      lastCommit: lastCommit ?? 'null',
+      lastCommit: lastCommit,
       headCommit,
       contextDir,
       changeCount: changes.length,
