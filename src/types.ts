@@ -71,9 +71,9 @@ export interface AgenticConfig {
   /** Where per-ticket docs folders are created (default `docs`). */
   docsDir: string;
   /** Where generated codebase context lives (default `.agentic/context`). Git-ignored. */
-  contextDir: string;
+  contextDir?: string;
   /** Where the token-saving cache store lives (default `.agentic/cache`). Git-ignored. */
-  cacheDir: string;
+  cacheDir?: string;
   /** Default code-review loop iterations. */
   reviewLoops: number;
   /** Default output mode: 'comments' (default) or 'code'. */
