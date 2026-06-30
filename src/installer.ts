@@ -38,11 +38,15 @@ function render(
   vars: { tier: ModelTier; config: AgenticConfig },
 ): string {
   const choice = MODEL_TIERS[vars.tier];
+  const contextDir = vars.config.contextDir ?? '.agentic/context';
+  const cacheDir = vars.config.cacheDir ?? '.agentic/cache';
   return content
     .replaceAll('{{MODEL}}', choice.primary)
     .replaceAll('{{MODEL_FALLBACKS}}', choice.fallbacks.join(', '))
     .replaceAll('{{TIER}}', vars.tier)
     .replaceAll('{{DOCS_DIR}}', vars.config.docsDir)
+    .replaceAll('{{CONTEXT_DIR}}', contextDir)
+    .replaceAll('{{CACHE_DIR}}', cacheDir)
     .replaceAll('{{REVIEW_LOOPS}}', String(vars.config.reviewLoops))
     .replaceAll('{{DEFAULT_OUTPUT_MODE}}', vars.config.defaultOutputMode);
 }
@@ -137,7 +141,48 @@ export async function install(opts: InstallOptions): Promise<InstallResult> {
     written,
   );
 
+  // Ensure generated context + cache dirs are git-ignored (they are local, regenerable state).
+  await ensureGitignore(
+    opts.cwd,
+    [
+      opts.config.contextDir ?? '.agentic/context',
+      opts.config.cacheDir ?? '.agentic/cache',
+    ],
+    written,
+  );
+
   return { written };
+}
+
+/**
+ * Append managed entries to the target project's `.gitignore` so generated
+ * codebase context and the token-saving cache are never committed. Entries
+ * already present (in any form) are skipped; the block is created on demand.
+ */
+export async function ensureGitignore(
+  cwd: string,
+  entries: string[],
+  written: string[],
+): Promise<void> {
+  const path = join(cwd, '.gitignore');
+  let body = existsSync(path) ? await readFile(path, 'utf8') : '';
+  const present = new Set(
+    body
+      .split(/\r?\n/)
+      .map((l) => l.trim().replace(/\/$/, '')),
+  );
+  const missing = entries
+    .map((e) => e.replace(/\/$/, ''))
+    .filter((e) => e && !present.has(e));
+  if (missing.length === 0) return;
+
+  const MARKER = '# agentic-workflow (generated context + cache)';
+  if (body.length > 0 && !body.endsWith('\n')) body += '\n';
+  if (!body.includes(MARKER)) body += `\n${MARKER}\n`;
+  for (const e of missing) body += `${e}/\n`;
+
+  await writeFile(path, body, 'utf8');
+  written.push(path);
 }
 
 export interface GlobalInstallResult {

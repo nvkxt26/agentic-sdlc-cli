@@ -48,6 +48,8 @@ without a `.github/` folder:
 
 ## Install
 
+> **Requires Node.js ≥ 22** — the `cache` skill uses Node's built-in `node:sqlite`.
+
 ### Option A — Project dependency (recommended)
 
 Copilot files are scaffolded automatically on `npm install` via a `postinstall`
@@ -133,8 +135,9 @@ agent picker (or type `/resolve-ticket`), and provide a Jira ticket ID.
 ├── copilot-instructions.md          ← always-on entrypoint (loaded every chat)
 ├── agents/
 │   ├── sdlc-orchestrator.agent.md   ← start here; sequences the pipeline
+│   ├── context-builder.agent.md     ← maintains codebase context (incremental, diff-based)
 │   ├── product.agent.md             ← gathers Jira + Figma requirements
-│   ├── architect.agent.md           ← produces the implementation plan
+│   ├── architect.agent.md           ← produces the implementation plan (plans against context)
 │   ├── senior-developer.agent.md    ← applies the plan (comments or code)
 │   ├── qa.agent.md                  ← adds/updates unit + integration tests
 │   └── code-reviewer.agent.md       ← review loop (up to 5×) until clean
@@ -143,22 +146,26 @@ agent picker (or type `/resolve-ticket`), and provide a Jira ticket ID.
 │   ├── confluence/                  ← fetches Confluence page as TOON
 │   ├── figma/                       ← fetches Figma node images/metadata as TOON
 │   ├── git-branch/                  ← creates branches with enforced naming
-│   └── git-commit/                  ← commits with enforced message format
+│   ├── git-commit/                  ← commits with enforced message format
+│   ├── context-sync/                ← default-branch diff since last indexed commit
+│   └── cache/                       ← SQLite token-saving cache (node:sqlite)
 ├── instructions/
 │   ├── toon-communication.instructions.md
 │   ├── caveman.instructions.md
 │   ├── git-conventions.instructions.md
 │   ├── workflow-docs.instructions.md
 │   ├── no-assume.instructions.md
-│   └── output-mode.instructions.md
+│   ├── output-mode.instructions.md
+│   └── caching.instructions.md
 └── prompts/
     └── resolve-ticket.prompt.md     ← /resolve-ticket slash command
 ```
 
 Project root:
 ```
-.agentic-workflow.json   ← config (docs dir, model overrides, review loops)
+.agentic-workflow.json   ← config (docs/context/cache dirs, model overrides, review loops)
 .env.example             ← credential template (copy to .env and fill in)
+.gitignore               ← gains .agentic/context/ + .agentic/cache/ (generated, never committed)
 ```
 
 ---
@@ -167,8 +174,9 @@ Project root:
 
 ```
 0. setup    → docs/<JIRA>/ + branch (git-branch skill)
+0b. context → refresh .agentic/context/ from default-branch diff (context-builder + context-sync)
 1. product  → requirements.toon   (Jira + Figma; asks questions, never assumes)
-2. architect→ plan.toon
+2. architect→ plan.toon           (plans against generated context; reuses cache)
 3. develop  → dev-report.toon     (comments by default; build verified in code mode)
 4. qa       → qa-report.toon      (unit + integration tests)
 5. review   → review-log.toon     (loop up to 5×)
@@ -180,16 +188,38 @@ Every hand-off between stages is a **TOON** artifact persisted under
 
 ---
 
+## Codebase context & caching
+
+Two features keep the workflow fast and cheap:
+
+- **Context** — the **context-builder** agent maintains a map of the codebase on the
+  default branch (`main`/`develop`/`master`). The deterministic **context-sync** skill
+  detects the default branch and emits the file diff since the last indexed commit
+  (full list on first run), so context is updated incrementally instead of re-read each
+  ticket. Context lives in `.agentic/context/` and the indexed-commit marker in
+  `.agentic/context/context-meta.json`.
+- **Cache** — the **cache** skill is a SQLite key/value store (Node's built-in
+  `node:sqlite`, hence **Node ≥ 22**) at `.agentic/cache/cache.db`. Stages check it
+  before fetching/recomputing (Jira, Figma, Confluence, context, plan fragments) and
+  store results after, reusing data to save tokens. See `caching.instructions.md`.
+
+Both `.agentic/context/` and `.agentic/cache/` are generated, regenerable state and are
+added to the project's `.gitignore` automatically — they are never committed. The
+locations are configurable in `.agentic-workflow.json` (`contextDir`, `cacheDir`).
+
+---
+
 ## Models per task
 
 Each agent/skill maps to a reasoning **tier** that resolves to a model:
 
 | Tier | Default model | Used by |
 |---|---|---|
-| `reasoning-max` | Claude Opus 4.8 | orchestrator, architect, code-reviewer |
+| `reasoning-max` | Claude Opus 4.8 | architect, code-reviewer |
 | `reasoning-high` | Claude Sonnet 4.5 | product |
 | `coding` | Claude Sonnet 4.5 | senior-developer, qa |
-| `light` | GPT-5 mini | jira, confluence, figma, git-branch, git-commit |
+| `balanced` | GPT-5 mini | orchestrator, context-builder |
+| `light` | GPT-5 mini | jira, confluence, figma, git-branch, git-commit, context-sync, cache |
 
 Override per component:
 
@@ -209,6 +239,8 @@ agentic-workflow run confluence -- --id 123456
 agentic-workflow run figma -- --url "https://www.figma.com/design/KEY/Name?node-id=12-34" --out docs/FXDOMAIN-1234/figma
 agentic-workflow run git-branch -- --type feat --ticket FXDOMAIN-1234 --desc "add retry"
 agentic-workflow run git-commit -- --ticket FXDOMAIN-1234 --message "add retry" --all
+agentic-workflow run context-sync -- --context-dir .agentic/context
+agentic-workflow run cache -- get --key jira:FXDOMAIN-1234 --raw
 ```
 
 ---

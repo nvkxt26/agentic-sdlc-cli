@@ -4,3 +4,12 @@ dist/
 .env
 .DS_Store
 *.tgz
+
+docs/
+.github/copilot-instructions.md
+.github/prompts/
+.github/agents/
+.github/instructions/
+.github/skills/
+.agentic-workflow.json
+.agents/

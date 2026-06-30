@@ -15,7 +15,7 @@ export const AGENTS: AgentDefinition[] = [
     name: 'SDLC Orchestrator',
     description:
       'Entry point. Starts ticket resolution and routes work through the persona skills in order.',
-    tier: 'reasoning-max',
+    tier: 'balanced',
     template: 'agents/sdlc-orchestrator.agent.md',
     outFile: 'sdlc-orchestrator.agent.md',
     order: 0,
@@ -31,13 +31,23 @@ export const AGENTS: AgentDefinition[] = [
     order: 1,
   },
   {
+    id: 'context-builder',
+    name: 'Context Builder',
+    description:
+      'Maintains codebase context on the default branch; updates it from the diff since the last indexed commit.',
+    tier: 'balanced',
+    template: 'agents/context-builder.agent.md',
+    outFile: 'context-builder.agent.md',
+    order: 2,
+  },
+  {
     id: 'architect',
     name: 'Architect',
     description: 'Turns gathered requirements into a concrete implementation plan.',
     tier: 'reasoning-max',
     template: 'agents/architect.agent.md',
     outFile: 'architect.agent.md',
-    order: 2,
+    order: 3,
   },
   {
     id: 'senior-developer',
@@ -47,7 +57,7 @@ export const AGENTS: AgentDefinition[] = [
     tier: 'coding',
     template: 'agents/senior-developer.agent.md',
     outFile: 'senior-developer.agent.md',
-    order: 3,
+    order: 4,
   },
   {
     id: 'qa',
@@ -56,7 +66,7 @@ export const AGENTS: AgentDefinition[] = [
     tier: 'coding',
     template: 'agents/qa.agent.md',
     outFile: 'qa.agent.md',
-    order: 4,
+    order: 5,
   },
   {
     id: 'code-reviewer',
@@ -66,7 +76,7 @@ export const AGENTS: AgentDefinition[] = [
     tier: 'reasoning-max',
     template: 'agents/code-reviewer.agent.md',
     outFile: 'code-reviewer.agent.md',
-    order: 5,
+    order: 6,
   },
 ];
 
@@ -127,6 +137,28 @@ export const SKILLS: SkillDefinition[] = [
     requiresEnv: [],
     standalone: true,
   },
+  {
+    id: 'context-sync',
+    name: 'Context Sync',
+    description:
+      'Detects the default branch and emits the file diff since the last indexed context commit (full on first run). Tracks the commit marker.',
+    tier: 'light',
+    templateDir: 'context-sync',
+    scripts: ['scripts/context-sync.mjs'],
+    requiresEnv: [],
+    standalone: true,
+  },
+  {
+    id: 'cache',
+    name: 'Cache Store',
+    description:
+      'SQLite-backed key/value cache (node:sqlite) for context, Jira, Figma and other fetches — reused across stages to save tokens.',
+    tier: 'light',
+    templateDir: 'cache',
+    scripts: ['scripts/cache.mjs'],
+    requiresEnv: [],
+    standalone: true,
+  },
 ];
 
 /** Cross-cutting instruction files applied to the workspace. */
@@ -166,6 +198,12 @@ export const INSTRUCTIONS: InstructionDefinition[] = [
     description: 'Default to writing comments where code goes; override to emit real code.',
     template: 'instructions/output-mode.instructions.md',
     outFile: 'output-mode.instructions.md',
+  },
+  {
+    id: 'caching',
+    description: 'Cache context/Jira/Figma fetches in the SQLite store and reuse them to save tokens.',
+    template: 'instructions/caching.instructions.md',
+    outFile: 'caching.instructions.md',
   },
 ];
 
