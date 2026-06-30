@@ -95,7 +95,9 @@ switch (cmd) {
       value = readFileSync(file, 'utf8');
     }
     if (value === undefined) fail('provide --value or --file');
-    const ttl = Number(getArg('ttl') ?? 0) || 0;
+    const ttlRaw = Number(getArg('ttl') ?? 0);
+    if (!Number.isFinite(ttlRaw) || ttlRaw < 0) fail('--ttl must be a non-negative number');
+    const ttl = Math.floor(ttlRaw);
     db.prepare(
       `INSERT INTO cache (scope, key, value, created_at, ttl) VALUES (?, ?, ?, ?, ?)
        ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value, created_at = excluded.created_at, ttl = excluded.ttl`,
