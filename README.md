@@ -294,5 +294,5 @@ npm run dev -- list
 
 ## License
 
-MIT
+[GNU GPL v3](./LICENSE) — free to use and contribute; any commercial distribution must be released under the same open-source terms.
 
