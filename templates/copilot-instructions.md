@@ -1,10 +1,10 @@
 # Agentic SDLC Workflow
 
-This project uses the **agentic-workflow** system. The rules below apply to every Copilot interaction.
+This project uses the **agentic-workflow** system (provider: {{PROVIDER}}). The rules below apply to every interaction.
 
-## Personas
+## Agents
 
-Seven agents are installed in `.github/agents/`. Select the appropriate persona from the Copilot Chat agent picker, or use the SDLC Orchestrator to run the full pipeline:
+Installed in `{{AGENTS_DIR}}/`. Pick the appropriate persona, or use the SDLC Orchestrator to run the full pipeline:
 
 | Agent | Role |
 |---|---|
@@ -14,15 +14,19 @@ Seven agents are installed in `.github/agents/`. Select the appropriate persona 
 | Architect | Turns requirements into a concrete implementation plan |
 | Senior Developer | Applies the plan (inline comments or real code) |
 | QA | Adds and updates unit and integration tests |
-| Code Reviewer | Review loop (up to {{REVIEW_LOOPS}}×) until the PR is clean |
+| Code Reviewer | Review loop (up to {{REVIEW_LOOPS}}×) until the change is clean |
+| Repo Q&A | Answers any question about this repo; refreshes context first when stale |
+| Epic Planner | Plans a whole Jira epic across a group of repos (workspace) |
 
-Start with the `/resolve-ticket` prompt.
+Entry points: `/resolve-ticket` (one ticket), `/ask-repo` (a question), `/plan-epic` (an epic across repos).
 
 ## Always-on rules
 
-- **No assumptions** — if context is missing, stop and ask numbered questions before proceeding. See `.github/instructions/no-assume.instructions.md`.
-- **TOON + caveman FULL** — all inter-agent hand-offs use TOON notation with caveman FULL compression. See `.github/instructions/toon-communication.instructions.md` and `.github/instructions/caveman.instructions.md`.
-- **Git conventions** — branch names and commit messages follow a fixed pattern. See `.github/instructions/git-conventions.instructions.md`.
-- **Per-ticket docs** — create `{{DOCS_DIR}}/<JIRA>/` for every ticket. See `.github/instructions/workflow-docs.instructions.md`.
-- **Output mode** — default developer output is `{{DEFAULT_OUTPUT_MODE}}`. See `.github/instructions/output-mode.instructions.md`.
-- **Cache + context** — reuse fetched data via the cache skill and plan against generated context. See `.github/instructions/caching.instructions.md`. Generated state in `{{CONTEXT_DIR}}/` and `{{CACHE_DIR}}/` is git-ignored.
+- **No assumptions** — if context is missing, stop and ask numbered questions before proceeding. See `{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`.
+- **TOON + caveman FULL** — all inter-agent hand-offs use TOON notation with caveman FULL compression. See `{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md` and `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`.
+- **Git conventions** — branch names and commit messages follow a fixed pattern. See `{{INSTRUCTIONS_DIR}}/git-conventions.instructions.md`.
+- **Per-ticket docs** — create `{{DOCS_DIR}}/<JIRA>/` for every ticket. See `{{INSTRUCTIONS_DIR}}/workflow-docs.instructions.md`.
+- **Output mode** — default developer output is `{{DEFAULT_OUTPUT_MODE}}`. See `{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`.
+- **Reuse project conventions** — prefer existing components/utilities/patterns over generic ones. See `{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`.
+- **Cache + context** — reuse fetched data via the cache skill and plan against generated context. See `{{INSTRUCTIONS_DIR}}/caching.instructions.md`. Generated state in `{{CONTEXT_DIR}}/`, `{{CACHE_DIR}}/` and `{{REGISTRY_DIR}}/` is git-ignored.
+- **Workspaces** — when part of a repo group, coordinate via the shared registry and repo-bridge. See `{{INSTRUCTIONS_DIR}}/workspace.instructions.md`.

@@ -3,13 +3,15 @@ import { findSkill, findAgent } from '../registry.js';
 import { install } from '../installer.js';
 import { readConfig, writeConfig, defaultConfig } from '../config.js';
 import { TIER_IDS } from '../models.js';
-import type { ModelTier } from '../types.js';
+import { isProviderId, PROVIDER_IDS } from '../providers.js';
+import type { ModelTier, ProviderId } from '../types.js';
 
 interface AddFlags {
   model?: string;
+  provider?: string;
 }
 
-/** Install a single skill or agent into the current project, with optional model override. */
+/** Install a single skill or agent into the current project, with optional model/provider override. */
 export async function addCommand(target: string, flags: AddFlags): Promise<void> {
   const cwd = process.cwd();
   const config = (await readConfig(cwd)) ?? defaultConfig();
@@ -23,6 +25,19 @@ export async function addCommand(target: string, flags: AddFlags): Promise<void>
       return;
     }
     config.modelOverrides[target] = flags.model as ModelTier;
+  }
+
+  if (flags.provider) {
+    const requested = flags.provider.split(',').map((s) => s.trim()).filter(Boolean);
+    const invalid = requested.filter((p) => !isProviderId(p));
+    if (invalid.length) {
+      console.error(
+        pc.red(`Invalid --provider ${invalid.join(', ')}. Valid: ${PROVIDER_IDS.join(', ')}`),
+      );
+      process.exitCode = 1;
+      return;
+    }
+    config.providers = requested as ProviderId[];
   }
 
   const skill = findSkill(target);

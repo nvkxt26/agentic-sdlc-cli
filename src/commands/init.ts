@@ -1,16 +1,17 @@
 import { join } from 'node:path';
-import { input, select, password, confirm } from '@inquirer/prompts';
+import { input, select, password, confirm, checkbox } from '@inquirer/prompts';
 import pc from 'picocolors';
 import { defaultConfig, writeConfig, readConfig } from '../config.js';
 import { install, installGlobal, setGlobalEnvVars, shellProfilePath } from '../installer.js';
-import { globalPromptsDir, globalSkillsDir } from '../paths.js';
-import type { AgenticConfig } from '../types.js';
+import { getProvider, isProviderId, PROVIDER_IDS, PROVIDERS } from '../providers.js';
+import type { AgenticConfig, ProviderId } from '../types.js';
 
 interface InitFlags {
   yes?: boolean;
   docsDir?: string;
   cwd?: string;
   global?: boolean;
+  provider?: string;
 }
 
 /** Interactive (or flag-driven) installer. */
@@ -30,6 +31,30 @@ export async function initCommand(flags: InitFlags): Promise<void> {
   }
 
   const config: AgenticConfig = existing ?? defaultConfig();
+
+  // Provider selection ---------------------------------------------------------
+  if (flags.provider) {
+    const requested = flags.provider.split(',').map((s) => s.trim()).filter(Boolean);
+    const invalid = requested.filter((p) => !isProviderId(p));
+    if (invalid.length) {
+      console.error(
+        pc.red(`Invalid --provider ${invalid.join(', ')}. Valid: ${PROVIDER_IDS.join(', ')}`),
+      );
+      process.exitCode = 1;
+      return;
+    }
+    config.providers = requested as ProviderId[];
+  } else if (!flags.yes) {
+    config.providers = (await checkbox({
+      message: 'Which AI provider(s) should the workflow be scaffolded for?',
+      choices: PROVIDER_IDS.map((id) => ({
+        name: PROVIDERS[id].label,
+        value: id,
+        checked: config.providers.includes(id),
+      })),
+      validate: (a) => (a.length > 0 ? true : 'Select at least one provider'),
+    })) as ProviderId[];
+  }
 
   if (!flags.yes) {
     config.docsDir = await input({
@@ -59,7 +84,7 @@ export async function initCommand(flags: InitFlags): Promise<void> {
 
   const written: string[] = [];
 
-  // Install all templates into .github/.
+  // Install all templates for the selected provider(s).
   const result = await install({ cwd, config });
   written.push(...result.written);
 
@@ -117,30 +142,38 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     }
   }
 
-  // Global install: copy prompts/instructions to VS Code user profile and skills to ~/.copilot/skills/
+  // Global install: copy components to each provider's user-level locations.
   if (flags.global) {
     const globalResult = await installGlobal(config);
     written.push(...globalResult.written);
   }
 
   console.log(pc.green(`\n✓ Installed ${written.length} files.`));
-  console.log(pc.dim('Key locations:'));
-  console.log(`  ${pc.cyan('.github/copilot-instructions.md')}  always-on Copilot entrypoint`);
-  console.log(`  ${pc.cyan('.github/agents/')}                  SDLC orchestrator + persona agents`);
-  console.log(`  ${pc.cyan('.github/skills/')}                  deterministic skills + scripts`);
-  console.log(`  ${pc.cyan('.github/instructions/')}            TOON / caveman / git / docs rules`);
-  console.log(`  ${pc.cyan('.github/prompts/')}                 resolve-ticket entry point`);
-  console.log(`  ${pc.cyan(config.docsDir + '/')}                       per-ticket artifacts land here`);
-  if (flags.global) {
-    console.log(pc.dim('\nGlobal install:'));
-    console.log(`  ${pc.cyan(globalPromptsDir())}  prompts + instructions`);
-    console.log(`  ${pc.cyan(globalSkillsDir())}        skills`);
+  console.log(pc.dim('Key locations per provider:'));
+  for (const pid of config.providers) {
+    const p = getProvider(pid);
+    console.log(`  ${pc.bold(p.label)}`);
+    console.log(`    ${pc.cyan(p.alwaysOnFile)}  always-on rules`);
+    console.log(`    ${pc.cyan(p.agentsDir + '/')}  agents (orchestrator, personas, repo-qa, epic-planner)`);
+    console.log(`    ${pc.cyan(p.skillsDir + '/')}  deterministic skills + scripts`);
+    console.log(`    ${pc.cyan(p.promptsDir + '/')}  prompts / slash commands`);
   }
+  console.log(`  ${pc.cyan(config.docsDir + '/')}  per-ticket artifacts land here`);
+
+  if (flags.global) {
+    console.log(pc.dim('\nGlobal install locations:'));
+    for (const pid of config.providers) {
+      const g = getProvider(pid).global;
+      for (const dir of [g.agentsDir, g.skillsDir, g.promptsDir, g.instructionsDir]) {
+        if (dir) console.log(`  ${pc.cyan(dir)}`);
+      }
+    }
+  }
+
   console.log(
     pc.dim(
-      '\nNext: open Copilot Chat, pick the "SDLC Orchestrator" agent, and run /resolve-ticket.',
+      '\nNext: open your agent, pick the "SDLC Orchestrator" (or run /resolve-ticket), ' +
+        'and provide a Jira ticket. For a group of repos, run `agentic-workflow workspace init`.',
     ),
   );
 }
-
-

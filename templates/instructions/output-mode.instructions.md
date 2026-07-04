@@ -1,9 +1,4 @@
----
-applyTo: '**'
-description: Default output mode is comments-where-code-goes; override to write real code.
----
-
-# Output mode (requirement #8)
+# Output mode
 
 Skills that change source code have two output modes. The default is `{{DEFAULT_OUTPUT_MODE}}`.
 

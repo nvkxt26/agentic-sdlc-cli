@@ -1,21 +1,16 @@
----
-applyTo: '**'
-description: All inter-skill communication uses TOON; caveman FULL is always active when emitting TOON.
----
-
 # TOON communication
 
-Every input and output exchanged **between skills/agents** in this workflow MUST be **TOON** (Token-Oriented Object Notation). This is non-negotiable for hand-offs (requirement #6).
+Every input and output exchanged **between skills/agents** in this workflow MUST be **TOON** (Token-Oriented Object Notation). This is non-negotiable for hand-offs.
 
 ## Why
 TOON is line-oriented and indentation-based, and collapses arrays of uniform objects into a compact tabular form. It minimizes tokens while staying unambiguous.
 
 ## Rules
-- When you produce a hand-off artifact (requirements, plan, dev/qa/review reports), emit **TOON**, not JSON/YAML/prose.
-- **Caveman FULL is always on** while generating TOON values: drop articles, use fragments, short words, symbols (`→`, `=`). See `caveman.instructions.md`.
+- When you produce a hand-off artifact (requirements, plan, dev/qa/review reports, cross-repo answers), emit **TOON**, not JSON/YAML/prose.
+- **Caveman FULL is always on** while generating TOON values: drop articles, use fragments, short words, symbols (`→`, `=`). See `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`.
 - Keep keys stable and machine-parseable. Technical terms stay exact.
-- Persist each artifact under `{{DOCS_DIR}}/<JIRA>/` (see `workflow-docs.instructions.md`).
-- Human-facing summaries (final wrap-up, questions to the user) are **normal prose**, not TOON.
+- Persist each artifact under `{{DOCS_DIR}}/<JIRA>/` (see `{{INSTRUCTIONS_DIR}}/workflow-docs.instructions.md`).
+- Human-facing summaries (final wrap-up, questions to the user, Repo Q&A answers to a human) are **normal prose**, not TOON.
 
 ## TOON quick reference
 ```

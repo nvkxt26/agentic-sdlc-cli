@@ -1,11 +1,6 @@
----
-applyTo: '**'
-description: Caveman compression rules. FULL intensity is the default and is always active when emitting TOON hand-off artifacts.
----
-
 # Caveman (for TOON output)
 
-Ultra-compressed style that cuts tokens while keeping full technical accuracy. In this workflow, **caveman FULL is always active when generating TOON** (inter-skill communication). Requirement #7.
+Ultra-compressed style that cuts tokens while keeping full technical accuracy. In this workflow, **caveman FULL is always active when generating TOON** (inter-skill communication).
 
 ## Intensity = full (default, always-on for TOON)
 - fragments ok, drop articles, short words. Classic caveman.

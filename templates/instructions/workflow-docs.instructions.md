@@ -1,9 +1,4 @@
----
-applyTo: '**'
-description: Per-ticket documentation folder layout under the configured docs directory.
----
-
-# Per-ticket docs folder (requirement #14)
+# Per-ticket docs folder
 
 When ticket resolution starts, create a folder named after the Jira ticket under the configured docs directory:
 
@@ -17,6 +12,8 @@ When ticket resolution starts, create a folder named after the Jira ticket under
   figma/                # fetched figma images / metadata (if any)
   notes.md              # free-form human-facing notes (optional)
 ```
+
+For an **epic**, the epic planner writes `{{DOCS_DIR}}/<EPIC>/epic-plan.toon` at the workspace root.
 
 Rules:
 - All documentation and inter-skill communication for the ticket lives here.

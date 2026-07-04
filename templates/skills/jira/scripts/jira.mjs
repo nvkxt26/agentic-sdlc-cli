@@ -2,7 +2,9 @@
 /**
  * Deterministic Jira issue fetcher. Emits TOON on stdout (caveman FULL).
  *
- * Usage: node jira.mjs --issue FXDOMAIN-1234
+ * Usage:
+ *   node jira.mjs --issue FXDOMAIN-1234        # single issue
+ *   node jira.mjs --epic  FXDOMAIN-1000        # epic + its child issues
  * Env:   ATLASSIAN_BASE_URL, ATLASSIAN_EMAIL, ATLASSIAN_API_TOKEN
  */
 
@@ -47,14 +49,28 @@ function getArg(name) {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
-const issue = getArg('issue') || process.argv.find((a) => /^[A-Z][A-Z0-9]+-\d+$/.test(a));
-if (!issue) fail('missing --issue <KEY>');
+const issue = getArg('issue') || (!process.argv.includes('--epic') && process.argv.find((a) => /^[A-Z][A-Z0-9]+-\d+$/.test(a)));
+const epic = getArg('epic');
+if (!issue && !epic) fail('missing --issue <KEY> or --epic <KEY>');
 
 const base = process.env.ATLASSIAN_BASE_URL;
 const email = process.env.ATLASSIAN_EMAIL;
 const token = process.env.ATLASSIAN_API_TOKEN;
 if (!base || !email || !token) {
   fail('missing env ATLASSIAN_BASE_URL/ATLASSIAN_EMAIL/ATLASSIAN_API_TOKEN');
+}
+const BASE = base.replace(/\/$/, '');
+const AUTH = 'Basic ' + Buffer.from(`${email}:${token}`).toString('base64');
+
+async function getJson(url) {
+  let res;
+  try {
+    res = await fetch(url, { headers: { Authorization: AUTH, Accept: 'application/json' } });
+  } catch (e) {
+    fail(`request failed: ${e.message}`);
+  }
+  if (!res.ok) fail(`http ${res.status} fetching ${url}`);
+  return res.json();
 }
 
 // ---- ADF → plain text (best effort) -----------------------------------------
@@ -68,19 +84,10 @@ function adfText(node) {
 }
 const FIGMA_RE = /https?:\/\/(?:www\.)?figma\.com\/[^\s)"']+/g;
 
-(async () => {
-  const auth = 'Basic ' + Buffer.from(`${email}:${token}`).toString('base64');
+async function fetchIssue(key) {
   const fields = 'summary,description,status,issuetype,labels,comment,issuelinks';
-  const url = `${base.replace(/\/$/, '')}/rest/api/3/issue/${encodeURIComponent(issue)}?fields=${fields}`;
-
-  let res;
-  try {
-    res = await fetch(url, { headers: { Authorization: auth, Accept: 'application/json' } });
-  } catch (e) {
-    fail(`request failed: ${e.message}`);
-  }
-  if (!res.ok) fail(`http ${res.status} fetching ${issue}`);
-  const data = await res.json();
+  const url = `${BASE}/rest/api/3/issue/${encodeURIComponent(key)}?fields=${fields}`;
+  const data = await getJson(url);
   const f = data.fields || {};
 
   const descText = adfText(f.description);
@@ -99,7 +106,7 @@ const FIGMA_RE = /https?:\/\/(?:www\.)?figma\.com\/[^\s)"']+/g;
   const haystack = [descText, ...comments.map((c) => c.body)].join('\n');
   const figmaLinks = Array.from(new Set(haystack.match(FIGMA_RE) || []));
 
-  const result = {
+  return {
     issue: {
       key: data.key,
       summary: f.summary || '',
@@ -112,5 +119,42 @@ const FIGMA_RE = /https?:\/\/(?:www\.)?figma\.com\/[^\s)"']+/g;
     links,
     figmaLinks,
   };
+}
+
+async function fetchEpicChildren(epicKey) {
+  // Team-managed projects use `parent`; company-managed use the "Epic Link" field.
+  const jql = `parent = "${epicKey}" OR "Epic Link" = "${epicKey}" ORDER BY created ASC`;
+  const url = `${BASE}/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=summary,issuetype,status,labels&maxResults=100`;
+  const data = await getJson(url);
+  return (data.issues || []).map((i) => ({
+    key: i.key,
+    summary: i.fields?.summary || '',
+    type: i.fields?.issuetype?.name || '',
+    status: i.fields?.status?.name || '',
+    labels: (i.fields?.labels || []).join('|'),
+  }));
+}
+
+(async () => {
+  if (epic) {
+    const parent = await fetchIssue(epic);
+    const children = await fetchEpicChildren(epic);
+    console.log(
+      toon({
+        epic: {
+          key: parent.issue.key,
+          summary: parent.issue.summary,
+          status: parent.issue.status,
+          type: parent.issue.type,
+          childCount: children.length,
+        },
+        description: parent.description,
+        children,
+      }),
+    );
+    return;
+  }
+
+  const result = await fetchIssue(issue);
   console.log(toon(result));
 })();
