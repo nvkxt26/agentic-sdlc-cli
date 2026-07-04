@@ -13,3 +13,8 @@ docs/
 .github/skills/
 .agentic-workflow.json
 .agents/
+
+# agentic-workflow (generated context + cache + registry)
+.agentic/context/
+.agentic/cache/
+.agentic/registry/

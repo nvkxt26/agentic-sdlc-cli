@@ -2,14 +2,16 @@ import { mkdir, readFile, writeFile, readdir, chmod } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
-import { templatesDir, GITHUB_DIR, globalPromptsDir, globalSkillsDir } from './paths.js';
-import { MODEL_TIERS } from './models.js';
+import { templatesDir } from './paths.js';
+import { getProvider, type ProviderSpec } from './providers.js';
 import { AGENTS, SKILLS, INSTRUCTIONS, PROMPTS } from './registry.js';
 import type {
   AgenticConfig,
   ModelTier,
   AgentDefinition,
   SkillDefinition,
+  InstructionDefinition,
+  PromptDefinition,
 } from './types.js';
 
 export interface InstallOptions {
@@ -27,79 +29,114 @@ export interface InstallResult {
   written: string[];
 }
 
+const DEFAULT_CONTEXT_DIR = '.agentic/context';
+const DEFAULT_CACHE_DIR = '.agentic/cache';
+const DEFAULT_REGISTRY_DIR = '.agentic/registry';
+
 /** Resolve the effective tier for a component, honouring config overrides. */
 export function effectiveTier(id: string, fallback: ModelTier, config: AgenticConfig): ModelTier {
   return config.modelOverrides[id] ?? fallback;
 }
 
-/** Substitute template placeholders. */
+/** Substitute template placeholders (paths are provider-specific). */
 function render(
   content: string,
-  vars: { tier: ModelTier; config: AgenticConfig },
+  vars: { tier: ModelTier; config: AgenticConfig; provider: ProviderSpec },
 ): string {
-  const choice = MODEL_TIERS[vars.tier];
-  const contextDir = vars.config.contextDir ?? '.agentic/context';
-  const cacheDir = vars.config.cacheDir ?? '.agentic/cache';
+  const { config, provider } = vars;
+  const choice = provider.models[vars.tier];
+  const contextDir = config.contextDir ?? DEFAULT_CONTEXT_DIR;
+  const cacheDir = config.cacheDir ?? DEFAULT_CACHE_DIR;
+  const registryDir = config.registryDir ?? DEFAULT_REGISTRY_DIR;
   return content
     .replaceAll('{{MODEL}}', choice.primary)
     .replaceAll('{{MODEL_FALLBACKS}}', choice.fallbacks.join(', '))
     .replaceAll('{{TIER}}', vars.tier)
-    .replaceAll('{{DOCS_DIR}}', vars.config.docsDir)
+    .replaceAll('{{DOCS_DIR}}', config.docsDir)
     .replaceAll('{{CONTEXT_DIR}}', contextDir)
     .replaceAll('{{CACHE_DIR}}', cacheDir)
-    .replaceAll('{{REVIEW_LOOPS}}', String(vars.config.reviewLoops))
-    .replaceAll('{{DEFAULT_OUTPUT_MODE}}', vars.config.defaultOutputMode);
+    .replaceAll('{{REGISTRY_DIR}}', registryDir)
+    .replaceAll('{{REVIEW_LOOPS}}', String(config.reviewLoops))
+    .replaceAll('{{DEFAULT_OUTPUT_MODE}}', config.defaultOutputMode)
+    .replaceAll('{{AGENTS_DIR}}', provider.agentsDir)
+    .replaceAll('{{SKILLS_DIR}}', provider.skillsDir)
+    .replaceAll('{{INSTRUCTIONS_DIR}}', provider.instructionsDir)
+    .replaceAll('{{PROMPTS_DIR}}', provider.promptsDir)
+    .replaceAll('{{ALWAYS_ON_FILE}}', provider.alwaysOnFile)
+    .replaceAll('{{PROVIDER}}', provider.label);
 }
 
-async function copyRendered(
-  src: string,
-  dest: string,
-  tier: ModelTier,
-  config: AgenticConfig,
-  written: string[],
-): Promise<void> {
-  const raw = await readFile(src, 'utf8');
+async function writeOut(dest: string, content: string, written: string[]): Promise<void> {
   await mkdir(dirname(dest), { recursive: true });
-  await writeFile(dest, render(raw, { tier, config }), 'utf8');
+  await writeFile(dest, content, 'utf8');
   written.push(dest);
 }
 
 async function installAgent(
   agent: AgentDefinition,
-  opts: InstallOptions,
+  destDir: string,
+  provider: ProviderSpec,
+  config: AgenticConfig,
   written: string[],
 ): Promise<void> {
-  const tier = effectiveTier(agent.id, agent.tier, opts.config);
-  const src = join(templatesDir(), agent.template);
-  const dest = join(opts.cwd, GITHUB_DIR, 'agents', agent.outFile);
-  await copyRendered(src, dest, tier, opts.config, written);
+  const tier = effectiveTier(agent.id, agent.tier, config);
+  const choice = provider.models[tier];
+  const body = await readFile(join(templatesDir(), agent.template), 'utf8');
+  const front = provider.agentFrontmatter(agent, choice.primary, choice.fallbacks);
+  const dest = join(destDir, provider.agentFile(agent.outFile));
+  await writeOut(dest, front + render(body, { tier, config, provider }), written);
+}
+
+async function installInstruction(
+  ins: InstructionDefinition,
+  destDir: string,
+  provider: ProviderSpec,
+  config: AgenticConfig,
+  written: string[],
+): Promise<void> {
+  const body = await readFile(join(templatesDir(), ins.template), 'utf8');
+  const front = provider.instructionFrontmatter(ins);
+  const dest = join(destDir, provider.instructionFile(ins.outFile));
+  await writeOut(dest, front + render(body, { tier: 'balanced', config, provider }), written);
+}
+
+async function installPrompt(
+  p: PromptDefinition,
+  destDir: string,
+  provider: ProviderSpec,
+  config: AgenticConfig,
+  written: string[],
+): Promise<void> {
+  const tier = effectiveTier(p.id, p.tier, config);
+  const choice = provider.models[tier];
+  const body = await readFile(join(templatesDir(), p.template), 'utf8');
+  const front = provider.promptFrontmatter(p, choice.primary, choice.fallbacks);
+  const dest = join(destDir, provider.promptFile(p.outFile));
+  await writeOut(dest, front + render(body, { tier, config, provider }), written);
 }
 
 async function installSkill(
   skill: SkillDefinition,
-  opts: InstallOptions,
+  destDir: string,
+  provider: ProviderSpec,
+  config: AgenticConfig,
   written: string[],
 ): Promise<void> {
-  const tier = effectiveTier(skill.id, skill.tier, opts.config);
+  const tier = effectiveTier(skill.id, skill.tier, config);
   const srcDir = join(templatesDir(), 'skills', skill.templateDir);
-  const destDir = join(opts.cwd, GITHUB_DIR, 'skills', skill.id);
+  const skillDir = join(destDir, skill.id);
 
-  // SKILL.md (rendered)
-  await copyRendered(
-    join(srcDir, 'SKILL.md'),
-    join(destDir, 'SKILL.md'),
-    tier,
-    opts.config,
-    written,
-  );
+  // SKILL.md keeps its own (provider-neutral) name/description frontmatter.
+  const md = await readFile(join(srcDir, 'SKILL.md'), 'utf8');
+  await writeOut(join(skillDir, 'SKILL.md'), render(md, { tier, config, provider }), written);
 
-  // scripts (copied verbatim, made executable)
+  // scripts copied verbatim, made executable.
   const scriptsSrc = join(srcDir, 'scripts');
   if (existsSync(scriptsSrc)) {
     const files = await readdir(scriptsSrc);
     for (const f of files) {
       const raw = await readFile(join(scriptsSrc, f), 'utf8');
-      const out = join(destDir, 'scripts', f);
+      const out = join(skillDir, 'scripts', f);
       await mkdir(dirname(out), { recursive: true });
       await writeFile(out, raw, 'utf8');
       if (f.endsWith('.mjs')) await chmod(out, 0o755);
@@ -108,45 +145,55 @@ async function installSkill(
   }
 }
 
-export async function install(opts: InstallOptions): Promise<InstallResult> {
-  const written: string[] = [];
+/** Install all selected components for a single provider into `root`. */
+async function installForProvider(
+  provider: ProviderSpec,
+  root: string,
+  opts: InstallOptions,
+  written: string[],
+): Promise<void> {
+  const agents = opts.onlyAgents ? AGENTS.filter((a) => opts.onlyAgents!.includes(a.id)) : AGENTS;
+  for (const a of agents) {
+    await installAgent(a, join(root, provider.agentsDir), provider, opts.config, written);
+  }
 
-  const onlyAgents = opts.onlyAgents;
-  const agents = onlyAgents ? AGENTS.filter((a) => onlyAgents.includes(a.id)) : AGENTS;
-  for (const a of agents) await installAgent(a, opts, written);
-
-  const onlySkills = opts.onlySkills;
-  const skills = onlySkills ? SKILLS.filter((s) => onlySkills.includes(s.id)) : SKILLS;
-  for (const s of skills) await installSkill(s, opts, written);
+  const skills = opts.onlySkills ? SKILLS.filter((s) => opts.onlySkills!.includes(s.id)) : SKILLS;
+  for (const s of skills) {
+    await installSkill(s, join(root, provider.skillsDir), provider, opts.config, written);
+  }
 
   if (!opts.coreOnly) {
     for (const ins of INSTRUCTIONS) {
-      const src = join(templatesDir(), ins.template);
-      const dest = join(opts.cwd, GITHUB_DIR, 'instructions', ins.outFile);
-      await copyRendered(src, dest, 'balanced', opts.config, written);
+      await installInstruction(ins, join(root, provider.instructionsDir), provider, opts.config, written);
     }
     for (const p of PROMPTS) {
-      const src = join(templatesDir(), p.template);
-      const dest = join(opts.cwd, GITHUB_DIR, 'prompts', p.outFile);
-      await copyRendered(src, dest, 'reasoning-max', opts.config, written);
+      await installPrompt(p, join(root, provider.promptsDir), provider, opts.config, written);
     }
+    // Always-on entrypoint (rendered body, no frontmatter).
+    const entry = await readFile(join(templatesDir(), 'copilot-instructions.md'), 'utf8');
+    await writeOut(
+      join(root, provider.alwaysOnFile),
+      render(entry, { tier: 'balanced', config: opts.config, provider }),
+      written,
+    );
+  }
+}
+
+export async function install(opts: InstallOptions): Promise<InstallResult> {
+  const written: string[] = [];
+  const providers = opts.config.providers?.length ? opts.config.providers : ['copilot' as const];
+
+  for (const pid of providers) {
+    await installForProvider(getProvider(pid), opts.cwd, opts, written);
   }
 
-  // Always-on entrypoint — VS Code loads this unconditionally.
-  await copyRendered(
-    join(templatesDir(), 'copilot-instructions.md'),
-    join(opts.cwd, GITHUB_DIR, 'copilot-instructions.md'),
-    'balanced',
-    opts.config,
-    written,
-  );
-
-  // Ensure generated context + cache dirs are git-ignored (they are local, regenerable state).
+  // Ensure generated context/cache/registry dirs are git-ignored (regenerable state).
   await ensureGitignore(
     opts.cwd,
     [
-      opts.config.contextDir ?? '.agentic/context',
-      opts.config.cacheDir ?? '.agentic/cache',
+      opts.config.contextDir ?? DEFAULT_CONTEXT_DIR,
+      opts.config.cacheDir ?? DEFAULT_CACHE_DIR,
+      opts.config.registryDir ?? DEFAULT_REGISTRY_DIR,
     ],
     written,
   );
@@ -176,7 +223,7 @@ export async function ensureGitignore(
     .filter((e) => e && !present.has(e));
   if (missing.length === 0) return;
 
-  const MARKER = '# agentic-workflow (generated context + cache)';
+  const MARKER = '# agentic-workflow (generated context + cache + registry)';
   if (body.length > 0 && !body.endsWith('\n')) body += '\n';
   if (!body.includes(MARKER)) body += `\n${MARKER}\n`;
   for (const e of missing) body += `${e}/\n`;
@@ -190,60 +237,31 @@ export interface GlobalInstallResult {
 }
 
 /**
- * Copy prompts and instructions to the VS Code user prompts directory, and
- * skills to ~/.copilot/skills/ so Copilot discovers them globally without
- * a project-level .github/ folder.
- *
- * Locations (platform-aware via globalPromptsDir / globalSkillsDir):
- *   macOS   prompts → ~/Library/Application Support/Code/User/prompts/
- *   macOS   skills  → ~/.copilot/skills/
- *   Windows prompts → %APPDATA%\Code\User\prompts\
- *   Linux   prompts → ~/.config/Code/User/prompts/
+ * Install components to each configured provider's user-level (global)
+ * locations so they are available in every project without a per-repo folder.
+ * Only the global sub-directories a provider actually defines are populated.
  */
 export async function installGlobal(config: AgenticConfig): Promise<GlobalInstallResult> {
   const written: string[] = [];
-  const promptsTarget = globalPromptsDir();
-  const skillsTarget = globalSkillsDir();
+  const providers = config.providers?.length ? config.providers : (['copilot'] as const);
 
-  // Prompts → VS Code user prompts dir
-  for (const p of PROMPTS) {
-    const src = join(templatesDir(), p.template);
-    const dest = join(promptsTarget, p.outFile);
-    await copyRendered(src, dest, 'reasoning-max', config, written);
-  }
+  for (const pid of providers) {
+    const provider = getProvider(pid);
+    const g = provider.global;
 
-  // Instructions → VS Code user prompts dir (Copilot picks up .instructions.md from here)
-  for (const ins of INSTRUCTIONS) {
-    const src = join(templatesDir(), ins.template);
-    const dest = join(promptsTarget, ins.outFile);
-    await copyRendered(src, dest, 'balanced', config, written);
-  }
-
-  // Skills → ~/.copilot/skills/{id}/
-  for (const skill of SKILLS) {
-    const tier = effectiveTier(skill.id, skill.tier, config);
-    const srcDir = join(templatesDir(), 'skills', skill.templateDir);
-    const destDir = join(skillsTarget, skill.id);
-
-    await copyRendered(
-      join(srcDir, 'SKILL.md'),
-      join(destDir, 'SKILL.md'),
-      tier,
-      config,
-      written,
-    );
-
-    const scriptsSrc = join(srcDir, 'scripts');
-    if (existsSync(scriptsSrc)) {
-      const files = await readdir(scriptsSrc);
-      for (const f of files) {
-        const raw = await readFile(join(scriptsSrc, f), 'utf8');
-        const out = join(destDir, 'scripts', f);
-        await mkdir(dirname(out), { recursive: true });
-        await writeFile(out, raw, 'utf8');
-        if (f.endsWith('.mjs')) await chmod(out, 0o755);
-        written.push(out);
+    if (g.agentsDir) {
+      for (const a of AGENTS) await installAgent(a, g.agentsDir, provider, config, written);
+    }
+    if (g.promptsDir) {
+      for (const p of PROMPTS) await installPrompt(p, g.promptsDir, provider, config, written);
+    }
+    if (g.instructionsDir) {
+      for (const ins of INSTRUCTIONS) {
+        await installInstruction(ins, g.instructionsDir, provider, config, written);
       }
+    }
+    if (g.skillsDir) {
+      for (const s of SKILLS) await installSkill(s, g.skillsDir, provider, config, written);
     }
   }
 

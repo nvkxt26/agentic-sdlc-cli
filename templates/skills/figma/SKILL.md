@@ -17,7 +17,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`) — deterministic fetch; the model 
 
 ## How to run
 ```bash
-node .github/skills/figma/scripts/figma.mjs --url "https://www.figma.com/design/KEY/Name?node-id=12-34" --out docs/FXDOMAIN-1234/figma
+node {{SKILLS_DIR}}/figma/scripts/figma.mjs --url "https://www.figma.com/design/KEY/Name?node-id=12-34" --out docs/FXDOMAIN-1234/figma
 # or:
 agentic-workflow run figma -- --url "<link>"
 ```

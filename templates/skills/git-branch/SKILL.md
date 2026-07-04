@@ -20,7 +20,7 @@ Example: `feat/FXDOMAIN-0000_implement-agentic-workflow-cli`
 
 ## How to run
 ```bash
-node .github/skills/git-branch/scripts/git-branch.mjs --type feat --ticket FXDOMAIN-0000 --desc "implement agentic workflow cli"
+node {{SKILLS_DIR}}/git-branch/scripts/git-branch.mjs --type feat --ticket FXDOMAIN-0000 --desc "implement agentic workflow cli"
 # or:
 agentic-workflow run git-branch -- --type feat --ticket FXDOMAIN-0000 --desc "implement agentic cli"
 ```

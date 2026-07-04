@@ -25,7 +25,7 @@ Deterministic git helper that tells the **context-builder** agent *what changed*
 ## How to run
 ```bash
 # 1. plan: what changed since last context build?
-node .github/skills/context-sync/scripts/context-sync.mjs --context-dir {{CONTEXT_DIR}}
+node {{SKILLS_DIR}}/context-sync/scripts/context-sync.mjs --context-dir {{CONTEXT_DIR}}
 # or:
 agentic-workflow run context-sync -- --context-dir {{CONTEXT_DIR}}
 

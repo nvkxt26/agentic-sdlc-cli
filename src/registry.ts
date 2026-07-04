@@ -7,7 +7,8 @@ import type {
 
 /**
  * The SDLC persona agents. The orchestrator (order 0) drives resolution and
- * delegates to the persona agents in workflow order.
+ * delegates to the persona agents in workflow order. Two workspace-aware agents
+ * (repo-qa, epic-planner) support cross-repo questions and epic planning.
  */
 export const AGENTS: AgentDefinition[] = [
   {
@@ -16,9 +17,22 @@ export const AGENTS: AgentDefinition[] = [
     description:
       'Entry point. Starts ticket resolution and routes work through the persona skills in order.',
     tier: 'balanced',
+    capabilities: [
+      'read',
+      'search',
+      'edit',
+      'run',
+      'usages',
+      'changes',
+      'tests',
+      'fetch',
+      'todos',
+      'subagents',
+    ],
     template: 'agents/sdlc-orchestrator.agent.md',
-    outFile: 'sdlc-orchestrator.agent.md',
+    outFile: 'sdlc-orchestrator',
     order: 0,
+    primary: true,
   },
   {
     id: 'product',
@@ -26,8 +40,9 @@ export const AGENTS: AgentDefinition[] = [
     description:
       'Gathers Jira task details, fetches Figma images, resolves ambiguity by asking questions. Never assumes.',
     tier: 'reasoning-high',
+    capabilities: ['read', 'search', 'fetch', 'edit', 'run'],
     template: 'agents/product.agent.md',
-    outFile: 'product.agent.md',
+    outFile: 'product',
     order: 1,
   },
   {
@@ -36,8 +51,9 @@ export const AGENTS: AgentDefinition[] = [
     description:
       'Maintains codebase context on the default branch; updates it from the diff since the last indexed commit.',
     tier: 'balanced',
+    capabilities: ['read', 'search', 'usages', 'run', 'edit', 'fetch'],
     template: 'agents/context-builder.agent.md',
-    outFile: 'context-builder.agent.md',
+    outFile: 'context-builder',
     order: 2,
   },
   {
@@ -45,8 +61,9 @@ export const AGENTS: AgentDefinition[] = [
     name: 'Architect',
     description: 'Turns gathered requirements into a concrete implementation plan.',
     tier: 'reasoning-max',
+    capabilities: ['read', 'search', 'usages', 'fetch', 'edit', 'tests'],
     template: 'agents/architect.agent.md',
-    outFile: 'architect.agent.md',
+    outFile: 'architect',
     order: 3,
   },
   {
@@ -55,8 +72,9 @@ export const AGENTS: AgentDefinition[] = [
     description:
       'Produces development design (comments by default) or real code, ensures it builds and covers requirements.',
     tier: 'coding',
+    capabilities: ['read', 'search', 'usages', 'edit', 'run', 'tests', 'changes'],
     template: 'agents/senior-developer.agent.md',
-    outFile: 'senior-developer.agent.md',
+    outFile: 'senior-developer',
     order: 4,
   },
   {
@@ -64,8 +82,9 @@ export const AGENTS: AgentDefinition[] = [
     name: 'QA',
     description: 'Adds/updates unit tests and fixes integration tests where supported.',
     tier: 'coding',
+    capabilities: ['read', 'search', 'usages', 'edit', 'run', 'tests', 'changes'],
     template: 'agents/qa.agent.md',
-    outFile: 'qa.agent.md',
+    outFile: 'qa',
     order: 5,
   },
   {
@@ -74,22 +93,48 @@ export const AGENTS: AgentDefinition[] = [
     description:
       'Reviews all dev + QA changes in a loop (up to 5x), feeding comments back until clean.',
     tier: 'reasoning-max',
+    capabilities: ['read', 'search', 'usages', 'edit', 'run', 'tests', 'changes'],
     template: 'agents/code-reviewer.agent.md',
-    outFile: 'code-reviewer.agent.md',
+    outFile: 'code-reviewer',
     order: 6,
+  },
+  {
+    id: 'repo-qa',
+    name: 'Repo Q&A',
+    description:
+      'Answers any question about this repo from generated context, refreshing the context first when it is stale. Also serves questions from agents in other repos via the repo-bridge skill.',
+    tier: 'reasoning-high',
+    capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'subagents'],
+    template: 'agents/repo-qa.agent.md',
+    outFile: 'repo-qa',
+    order: 7,
+    primary: true,
+  },
+  {
+    id: 'epic-planner',
+    name: 'Epic Planner',
+    description:
+      'Plans a whole Jira epic across a group of repos: fetches epic children, determines which repo each ticket touches (consulting peer repos via repo-bridge + repo-qa), and emits a per-ticket, per-repo resolution plan.',
+    tier: 'reasoning-max',
+    capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'edit', 'subagents', 'todos'],
+    template: 'agents/epic-planner.agent.md',
+    outFile: 'epic-planner',
+    order: 8,
+    primary: true,
   },
 ];
 
 /**
  * Specialized single-task skills. Deterministic integrations (Jira, Confluence,
- * Figma) ship `.mjs` scripts; git skills ship helpers for naming conventions.
+ * Figma) ship `.mjs` scripts; git skills ship helpers for naming conventions;
+ * repo-bridge is the deterministic cross-repo context channel.
  */
 export const SKILLS: SkillDefinition[] = [
   {
     id: 'jira',
     name: 'Jira Reader',
     description:
-      'Deterministically fetches a Jira issue (fields, description, comments, links) as TOON.',
+      'Deterministically fetches a Jira issue — or an epic and its child issues (--epic) — as TOON.',
     tier: 'light',
     templateDir: 'jira',
     scripts: ['scripts/jira.mjs'],
@@ -159,6 +204,17 @@ export const SKILLS: SkillDefinition[] = [
     requiresEnv: [],
     standalone: true,
   },
+  {
+    id: 'repo-bridge',
+    name: 'Repo Bridge',
+    description:
+      'Cross-repo context channel: publish this repo\'s context to the shared workspace registry, list/read peer repos\' context, and post/read questions to peer repos (agent-to-agent messaging).',
+    tier: 'light',
+    templateDir: 'repo-bridge',
+    scripts: ['scripts/repo-bridge.mjs'],
+    requiresEnv: [],
+    standalone: true,
+  },
 ];
 
 /** Cross-cutting instruction files applied to the workspace. */
@@ -167,43 +223,57 @@ export const INSTRUCTIONS: InstructionDefinition[] = [
     id: 'toon-communication',
     description: 'All inter-skill input/output uses TOON; caveman FULL always on for it.',
     template: 'instructions/toon-communication.instructions.md',
-    outFile: 'toon-communication.instructions.md',
+    outFile: 'toon-communication',
   },
   {
     id: 'caveman',
     description: 'Caveman compression rules (FULL default) used when emitting TOON.',
     template: 'instructions/caveman.instructions.md',
-    outFile: 'caveman.instructions.md',
+    outFile: 'caveman',
   },
   {
     id: 'git-conventions',
     description: 'Branch and commit message conventions.',
     template: 'instructions/git-conventions.instructions.md',
-    outFile: 'git-conventions.instructions.md',
+    outFile: 'git-conventions',
   },
   {
     id: 'workflow-docs',
     description: 'Per-ticket docs/<JIRA> folder layout and artifact storage.',
     template: 'instructions/workflow-docs.instructions.md',
-    outFile: 'workflow-docs.instructions.md',
+    outFile: 'workflow-docs',
   },
   {
     id: 'no-assume',
     description: 'Never assume — ask questions when requirements are unclear.',
     template: 'instructions/no-assume.instructions.md',
-    outFile: 'no-assume.instructions.md',
+    outFile: 'no-assume',
   },
   {
     id: 'output-mode',
     description: 'Default to writing comments where code goes; override to emit real code.',
     template: 'instructions/output-mode.instructions.md',
-    outFile: 'output-mode.instructions.md',
+    outFile: 'output-mode',
   },
   {
     id: 'caching',
     description: 'Cache context/Jira/Figma fetches in the SQLite store and reuse them to save tokens.',
     template: 'instructions/caching.instructions.md',
-    outFile: 'caching.instructions.md',
+    outFile: 'caching',
+  },
+  {
+    id: 'project-conventions',
+    description:
+      'Prefer existing project components/utilities/patterns discovered in context over generic ones (e.g. reuse a custom component library).',
+    template: 'instructions/project-conventions.instructions.md',
+    outFile: 'project-conventions',
+  },
+  {
+    id: 'workspace',
+    description:
+      'Cross-repo rules: consult peer repos via repo-bridge + repo-qa, keep context published, never assume peer internals.',
+    template: 'instructions/workspace.instructions.md',
+    outFile: 'workspace',
   },
 ];
 
@@ -212,8 +282,37 @@ export const PROMPTS: PromptDefinition[] = [
   {
     id: 'resolve-ticket',
     description: 'Kick off full SDLC resolution for a Jira ticket.',
+    tier: 'reasoning-max',
+    capabilities: [
+      'read',
+      'search',
+      'edit',
+      'run',
+      'fetch',
+      'usages',
+      'changes',
+      'tests',
+      'todos',
+      'subagents',
+    ],
     template: 'prompts/resolve-ticket.prompt.md',
-    outFile: 'resolve-ticket.prompt.md',
+    outFile: 'resolve-ticket',
+  },
+  {
+    id: 'ask-repo',
+    description: 'Ask any question about this repo; context is refreshed first if stale.',
+    tier: 'reasoning-high',
+    capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'subagents'],
+    template: 'prompts/ask-repo.prompt.md',
+    outFile: 'ask-repo',
+  },
+  {
+    id: 'plan-epic',
+    description: 'Plan a whole Jira epic across a group of repos, targeting each ticket to its repo.',
+    tier: 'reasoning-max',
+    capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'edit', 'subagents', 'todos'],
+    template: 'prompts/plan-epic.prompt.md',
+    outFile: 'plan-epic',
   },
 ];
 

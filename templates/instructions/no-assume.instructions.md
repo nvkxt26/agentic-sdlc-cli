@@ -1,9 +1,4 @@
----
-applyTo: '**'
-description: Never assume — ask questions whenever a requirement is unclear.
----
-
-# Never assume (requirement #9)
+# Never assume
 
 This rule applies to **every** skill and agent in the workflow.
 

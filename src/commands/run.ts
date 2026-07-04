@@ -3,11 +3,13 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import pc from 'picocolors';
 import { findSkill } from '../registry.js';
-import { GITHUB_DIR } from '../paths.js';
+import { readConfig, defaultConfig } from '../config.js';
+import { getProvider, PROVIDER_IDS } from '../providers.js';
 
 /**
- * Execute a deterministic skill's script (requirement #4). Arguments after `--`
- * are forwarded to the script; the script emits TOON on stdout.
+ * Execute a deterministic skill's script. Arguments after `--` are forwarded to
+ * the script; the script emits TOON on stdout. The script is resolved from
+ * whichever configured provider's skills dir contains it.
  */
 export async function runCommand(skillId: string, passthrough: string[]): Promise<void> {
   const cwd = process.cwd();
@@ -20,19 +22,28 @@ export async function runCommand(skillId: string, passthrough: string[]): Promis
   }
   if (skill.scripts.length === 0) {
     console.error(
-      pc.red(`Skill "${skillId}" has no deterministic script; invoke it via Copilot instead.`),
+      pc.red(`Skill "${skillId}" has no deterministic script; invoke it via the agent instead.`),
     );
     process.exitCode = 1;
     return;
   }
 
+  const config = (await readConfig(cwd)) ?? defaultConfig();
   const scriptRel = skill.scripts[0];
-  const scriptPath = join(cwd, GITHUB_DIR, 'skills', skill.id, scriptRel);
 
-  if (!existsSync(scriptPath)) {
+  // Search every provider's skills dir (installed one wins) so `run` works
+  // regardless of which provider(s) were scaffolded.
+  const providerIds = config.providers?.length ? config.providers : PROVIDER_IDS;
+  const candidates = providerIds.map((pid) =>
+    join(cwd, getProvider(pid).skillsDir, skill.id, scriptRel),
+  );
+  const scriptPath = candidates.find((p) => existsSync(p));
+
+  if (!scriptPath) {
     console.error(
       pc.red(
-        `Script not found at ${scriptPath}. Run \`init\` or \`add ${skillId}\` first.`,
+        `Script not found for "${skillId}". Looked in:\n  ${candidates.join('\n  ')}\n` +
+          `Run \`init\` or \`add ${skillId}\` first.`,
       ),
     );
     process.exitCode = 1;

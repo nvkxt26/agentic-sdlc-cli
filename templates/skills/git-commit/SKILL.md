@@ -20,7 +20,7 @@ Example: `[FXDOMAIN-0000]: add exponential backoff to network client`
 
 ## How to run
 ```bash
-node .github/skills/git-commit/scripts/git-commit.mjs --ticket FXDOMAIN-0000 --message "add retry to client" --all
+node {{SKILLS_DIR}}/git-commit/scripts/git-commit.mjs --ticket FXDOMAIN-0000 --message "add retry to client" --all
 # or:
 agentic-workflow run git-commit -- --ticket FXDOMAIN-0000 --message "add retry to client"
 ```

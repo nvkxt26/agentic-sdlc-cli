@@ -1,14 +1,9 @@
----
-applyTo: '**'
-description: Cache context/Jira/Figma/Confluence fetches in the SQLite store and reuse them to save tokens. Plan against generated codebase context.
----
-
 # Caching & context reuse
 
 Goal: **fetch once, reuse everywhere.** Avoid re-fetching or re-reasoning over data the workflow already has. This directly cuts token usage.
 
 ## Store
-- SQLite cache via the **cache** skill (`.github/skills/cache/`), backed by Node's built-in `node:sqlite`.
+- SQLite cache via the **cache** skill (`{{SKILLS_DIR}}/cache/`), backed by Node's built-in `node:sqlite`.
 - DB lives at `{{CACHE_DIR}}/cache.db`. Codebase context lives at `{{CONTEXT_DIR}}/`.
 - Both are **git-ignored** — local, regenerable state, never committed.
 
@@ -24,7 +19,7 @@ Goal: **fetch once, reuse everywhere.** Avoid re-fetching or re-reasoning over d
    ```
 
 ## Stable keys
-- `jira:<KEY>` · `confluence:<id>` · `figma:<nodeId>` · `context:<commit>` · `plan:<JIRA>`
+- `jira:<KEY>` · `epic:<KEY>` · `confluence:<id>` · `figma:<nodeId>` · `context:<commit>` · `plan:<JIRA>`
 - Key on the inputs that determine the result. Tie code context to a commit sha so stale entries are never reused after the branch moves.
 
 ## TTLs (suggested)
