@@ -1,6 +1,6 @@
 ---
 name: git-branch
-description: Create a git branch that follows the convention <feat|fix|release|chore>/<JIRA-TICKET>_<2-3 word description>. Validates the name before creating. Runs standalone or as the setup step of the SDLC workflow.
+description: "Create a git branch that follows the convention <feat|fix|release|chore>/<JIRA-TICKET>_<2-3 word description>. Validates the name before creating. Runs standalone or as the setup step of the SDLC workflow."
 ---
 
 # git-branch skill

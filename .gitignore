@@ -11,6 +11,7 @@ docs/
 .github/agents/
 .github/instructions/
 .github/skills/
+.github/hooks/
 .agentic-workflow.json
 .agents/
 
@@ -18,3 +19,4 @@ docs/
 .agentic/context/
 .agentic/cache/
 .agentic/registry/
+.agentic/logs/

@@ -8,7 +8,7 @@ import type {
 /**
  * The SDLC persona agents. The orchestrator (order 0) drives resolution and
  * delegates to the persona agents in workflow order. Two workspace-aware agents
- * (repo-qa, epic-planner) support cross-repo questions and epic planning.
+ * (mimir, epic-planner) support cross-repo questions and epic planning.
  */
 export const AGENTS: AgentDefinition[] = [
   {
@@ -16,7 +16,14 @@ export const AGENTS: AgentDefinition[] = [
     name: 'SDLC Orchestrator',
     description:
       'Entry point. Starts ticket resolution and routes work through the persona skills in order.',
-    tier: 'balanced',
+    // NOTE: pinned to reasoning-max (not the "balanced" this agent's own
+    // sequencing work would need) as a deliberate cost-ceiling workaround for
+    // GitHub Copilot: Copilot caps a subagent's requested model at the cost
+    // tier of the *invoking* agent's own model — a cheaper orchestrator would
+    // silently downgrade every persona it delegates to (architect, reviewer,
+    // etc.) to its own tier. Claude Code/OpenCode don't have this constraint,
+    // but the tier is shared across providers for one consistent config.
+    tier: 'reasoning-max',
     capabilities: [
       'read',
       'search',
@@ -33,6 +40,14 @@ export const AGENTS: AgentDefinition[] = [
     outFile: 'sdlc-orchestrator',
     order: 0,
     primary: true,
+    subagents: [
+      'product',
+      'context-builder',
+      'architect',
+      'senior-developer',
+      'qa',
+      'code-reviewer',
+    ],
   },
   {
     id: 'product',
@@ -99,24 +114,29 @@ export const AGENTS: AgentDefinition[] = [
     order: 6,
   },
   {
-    id: 'repo-qa',
-    name: 'Repo Q&A',
+    id: 'mimir',
+    name: 'Mimir',
     description:
       'Answers any question about this repo from generated context, refreshing the context first when it is stale. Also serves questions from agents in other repos via the repo-bridge skill.',
     tier: 'reasoning-high',
     capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'subagents'],
-    template: 'agents/repo-qa.agent.md',
-    outFile: 'repo-qa',
+    template: 'agents/mimir.agent.md',
+    outFile: 'mimir',
     order: 7,
     primary: true,
+    subagents: ['context-builder'],
   },
   {
     id: 'epic-planner',
     name: 'Epic Planner',
     description:
-      'Plans a whole Jira epic across a group of repos: fetches epic children, determines which repo each ticket touches (consulting peer repos via repo-bridge + repo-qa), and emits a per-ticket, per-repo resolution plan.',
+      'Plans a whole Jira epic across a group of repos: fetches epic children, determines which repo each ticket touches (consulting peer repos via repo-bridge + mimir), and emits a per-ticket, per-repo resolution plan.',
     tier: 'reasoning-max',
-    capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'edit', 'subagents', 'todos'],
+    // No 'subagents' capability: epic-planner never invokes a local persona as
+    // an in-process subagent. It only reaches peer repos out-of-process via
+    // the repo-bridge skill ('run') and hands execution off to a separate
+    // `/resolve-ticket` session in the target repo.
+    capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'edit', 'todos'],
     template: 'agents/epic-planner.agent.md',
     outFile: 'epic-planner',
     order: 8,
@@ -215,6 +235,17 @@ export const SKILLS: SkillDefinition[] = [
     requiresEnv: [],
     standalone: true,
   },
+  {
+    id: 'graphify',
+    name: 'Graphify Bridge',
+    description:
+      'Optional knowledge-graph layer on top of the TOON codebase context: wraps the third-party graphify CLI to build/query a queryable graph of the repo. Degrades gracefully when graphify is not installed.',
+    tier: 'light',
+    templateDir: 'graphify',
+    scripts: ['scripts/graphify.mjs'],
+    requiresEnv: [],
+    standalone: true,
+  },
 ];
 
 /** Cross-cutting instruction files applied to the workspace. */
@@ -271,7 +302,7 @@ export const INSTRUCTIONS: InstructionDefinition[] = [
   {
     id: 'workspace',
     description:
-      'Cross-repo rules: consult peer repos via repo-bridge + repo-qa, keep context published, never assume peer internals.',
+      'Cross-repo rules: consult peer repos via repo-bridge + mimir, keep context published, never assume peer internals.',
     template: 'instructions/workspace.instructions.md',
     outFile: 'workspace',
   },

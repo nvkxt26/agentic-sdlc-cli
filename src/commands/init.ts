@@ -4,6 +4,14 @@ import pc from 'picocolors';
 import { defaultConfig, writeConfig, readConfig } from '../config.js';
 import { install, installGlobal, setGlobalEnvVars, shellProfilePath } from '../installer.js';
 import { getProvider, isProviderId, PROVIDER_IDS, PROVIDERS } from '../providers.js';
+import {
+  isGraphifyInstalled,
+  tryInstallGraphifyCli,
+  setupGraphifyForProvider,
+  buildGraphifyGraph,
+  ensureGraphifyGitignore,
+  GRAPHIFY_INSTALL_HINT,
+} from '../graphify.js';
 import type { AgenticConfig, ProviderId } from '../types.js';
 
 interface InitFlags {
@@ -12,6 +20,8 @@ interface InitFlags {
   cwd?: string;
   global?: boolean;
   provider?: string;
+  graphify?: boolean;
+  modelLogging?: boolean;
 }
 
 /** Interactive (or flag-driven) installer. */
@@ -31,6 +41,9 @@ export async function initCommand(flags: InitFlags): Promise<void> {
   }
 
   const config: AgenticConfig = existing ?? defaultConfig();
+
+  // Model-usage logging is on by default; `--no-model-logging` disables it.
+  config.modelLogging = flags.modelLogging !== false;
 
   // Provider selection ---------------------------------------------------------
   if (flags.provider) {
@@ -148,17 +161,88 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     written.push(...globalResult.written);
   }
 
+  // Optional knowledge-graph layer (https://github.com/Graphify-Labs/graphify).
+  // Always attempted best-effort unless explicitly disabled; never blocks or
+  // fails the rest of `init` — context-builder/mimir work unchanged either way.
+  const wantGraphify = flags.graphify !== false && config.graphify !== false;
+  let graphifyStatus: 'skipped' | 'unavailable' | 'declined' | 'ready' = 'skipped';
+  if (wantGraphify) {
+    let available = isGraphifyInstalled();
+
+    if (!available) {
+      if (!flags.yes) {
+        const wantsInstall = await confirm({
+          message:
+            'graphify (optional knowledge-graph layer, github.com/Graphify-Labs/graphify) is not installed. ' +
+            'Install it now via uv/pipx/pip for deeper cross-file context queries?',
+          default: true,
+        });
+        if (wantsInstall) {
+          console.log(pc.dim('  Installing graphify CLI...'));
+          const attempt = tryInstallGraphifyCli();
+          available = attempt.installed;
+          if (available) {
+            console.log(pc.green(`  ✓ graphify installed via ${attempt.method}`));
+          } else {
+            console.log(
+              pc.yellow(
+                `  Could not install graphify automatically (${attempt.error}). ` +
+                  `Install manually later: ${GRAPHIFY_INSTALL_HINT}`,
+              ),
+            );
+          }
+        } else {
+          graphifyStatus = 'declined';
+        }
+      } else {
+        // Non-interactive (-y): never make surprise network/package-manager calls.
+        graphifyStatus = 'unavailable';
+      }
+    }
+
+    if (available) {
+      for (const pid of config.providers) {
+        setupGraphifyForProvider(cwd, pid);
+      }
+      buildGraphifyGraph(cwd);
+      await ensureGraphifyGitignore(cwd);
+      graphifyStatus = 'ready';
+    } else if (graphifyStatus === 'skipped') {
+      graphifyStatus = 'unavailable';
+    }
+  }
+  config.graphify = graphifyStatus === 'ready';
+  await writeConfig(cwd, config);
+
   console.log(pc.green(`\n✓ Installed ${written.length} files.`));
   console.log(pc.dim('Key locations per provider:'));
   for (const pid of config.providers) {
     const p = getProvider(pid);
     console.log(`  ${pc.bold(p.label)}`);
     console.log(`    ${pc.cyan(p.alwaysOnFile)}  always-on rules`);
-    console.log(`    ${pc.cyan(p.agentsDir + '/')}  agents (orchestrator, personas, repo-qa, epic-planner)`);
+    console.log(`    ${pc.cyan(p.agentsDir + '/')}  agents (orchestrator, personas, mimir, epic-planner)`);
     console.log(`    ${pc.cyan(p.skillsDir + '/')}  deterministic skills + scripts`);
     console.log(`    ${pc.cyan(p.promptsDir + '/')}  prompts / slash commands`);
   }
   console.log(`  ${pc.cyan(config.docsDir + '/')}  per-ticket artifacts land here`);
+
+  if (config.modelLogging) {
+    const actual = config.providers.filter((p) => p !== 'copilot');
+    console.log(pc.dim('\nModel-usage logging → ') + pc.cyan('.agentic/logs/model-usage.log'));
+    if (actual.length) {
+      console.log(
+        pc.dim(`  ${actual.join(', ')}: logs the actual resolved model per agent turn.`),
+      );
+    }
+    if (config.providers.includes('copilot')) {
+      console.log(
+        pc.dim(
+          '  copilot: logs the intended (configured) model — Copilot hooks don\'t expose the\n' +
+            '           resolved model; hover a subagent in chat to see the actual model + credits.',
+        ),
+      );
+    }
+  }
 
   if (flags.global) {
     console.log(pc.dim('\nGlobal install locations:'));
@@ -176,4 +260,16 @@ export async function initCommand(flags: InitFlags): Promise<void> {
         'and provide a Jira ticket. For a group of repos, run `agentic-workflow workspace init`.',
     ),
   );
+
+  if (graphifyStatus === 'ready') {
+    console.log(pc.green('\n✓ graphify knowledge-graph layer wired in.'));
+    console.log(pc.dim('  Try: agentic-workflow run graphify -- query "what connects auth to the database?"'));
+  } else if (graphifyStatus === 'unavailable' || graphifyStatus === 'declined') {
+    console.log(
+      pc.dim(
+        `\ngraphify not installed (context-builder/mimir still work via TOON context). ` +
+          `Install later: ${GRAPHIFY_INSTALL_HINT}`,
+      ),
+    );
+  }
 }

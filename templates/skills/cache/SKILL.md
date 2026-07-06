@@ -1,6 +1,6 @@
 ---
 name: cache
-description: SQLite-backed key/value cache (Node built-in node:sqlite) for context, Jira, Figma and other fetches. Check it before fetching/recomputing and store results after, so workflow stages reuse data instead of spending tokens. Runs standalone or in-workflow.
+description: "SQLite-backed key/value cache (Node built-in node:sqlite) for context, Jira, Figma and other fetches. Check it before fetching/recomputing and store results after, so workflow stages reuse data instead of spending tokens. Runs standalone or in-workflow."
 ---
 
 # cache skill

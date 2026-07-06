@@ -15,7 +15,7 @@ Installed in `{{AGENTS_DIR}}/`. Pick the appropriate persona, or use the SDLC Or
 | Senior Developer | Applies the plan (inline comments or real code) |
 | QA | Adds and updates unit and integration tests |
 | Code Reviewer | Review loop (up to {{REVIEW_LOOPS}}×) until the change is clean |
-| Repo Q&A | Answers any question about this repo; refreshes context first when stale |
+| Mimir | Answers any question about this repo; refreshes context first when stale |
 | Epic Planner | Plans a whole Jira epic across a group of repos (workspace) |
 
 Entry points: `/resolve-ticket` (one ticket), `/ask-repo` (a question), `/plan-epic` (an epic across repos).
@@ -30,3 +30,4 @@ Entry points: `/resolve-ticket` (one ticket), `/ask-repo` (a question), `/plan-e
 - **Reuse project conventions** — prefer existing components/utilities/patterns over generic ones. See `{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`.
 - **Cache + context** — reuse fetched data via the cache skill and plan against generated context. See `{{INSTRUCTIONS_DIR}}/caching.instructions.md`. Generated state in `{{CONTEXT_DIR}}/`, `{{CACHE_DIR}}/` and `{{REGISTRY_DIR}}/` is git-ignored.
 - **Workspaces** — when part of a repo group, coordinate via the shared registry and repo-bridge. See `{{INSTRUCTIONS_DIR}}/workspace.instructions.md`.
+- **Delegate by name, never role-play a persona.** Each agent above is pinned to its own model tier for a reason (heavy reasoning vs. light glue work). That pin only applies when a coordinating agent (SDLC Orchestrator, Mimir) actually invokes the target persona through the subagent tool by its exact name — answering a persona's stage inline instead of delegating silently runs it on the wrong model.

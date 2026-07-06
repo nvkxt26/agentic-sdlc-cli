@@ -53,11 +53,21 @@ export interface AgentDefinition {
   /** Order in the SDLC workflow (orchestrator = 0). */
   order: number;
   /**
-   * A top-level agent the user drives directly (orchestrator, repo-qa,
+   * A top-level agent the user drives directly (orchestrator, mimir,
    * epic-planner). Maps to OpenCode `mode: primary`. Persona roles are
    * sub-agents delegated to by the orchestrator.
    */
   primary?: boolean;
+  /**
+   * ids of the other agents this one is allowed to delegate to as in-process
+   * subagents (i.e. via the host's Task/agent tool, same repo). Used to build
+   * Copilot's `agents:` frontmatter allowlist, which restricts which custom
+   * agents can be invoked as a subagent and is required for the `model:`
+   * pin on the target agent to actually take effect. Omit for agents that
+   * never delegate locally (e.g. epic-planner only reaches peer repos via the
+   * repo-bridge skill, not a local subagent call).
+   */
+  subagents?: string[];
 }
 
 /** A specialized, single-task skill. May ship deterministic scripts. */
@@ -134,6 +144,21 @@ export interface AgenticConfig {
   envVars: string[];
   /** Per-agent / per-skill model tier overrides. */
   modelOverrides: Record<string, ModelTier>;
+  /**
+   * Whether `init` installs the per-provider model-usage logger (records which
+   * model each agent runs on to `.agentic/logs/model-usage.log`). OpenCode and
+   * Claude Code log the actual resolved model; Copilot logs the intended
+   * (configured) model. Default `true`; disable with `init --no-model-logging`.
+   */
+  modelLogging?: boolean;
+  /**
+   * Whether `init` wired in the optional graphify knowledge-graph layer
+   * (https://github.com/Graphify-Labs/graphify) for context-builder/mimir
+   * to use when the `graphify` CLI is present. Purely additive — the TOON
+   * context keeps working unchanged when this is `false` or graphify isn't
+   * installed. Default `true` (best-effort; never blocks install).
+   */
+  graphify?: boolean;
 }
 
 /**

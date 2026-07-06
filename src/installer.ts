@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { templatesDir } from './paths.js';
 import { getProvider, type ProviderSpec } from './providers.js';
 import { AGENTS, SKILLS, INSTRUCTIONS, PROMPTS } from './registry.js';
+import { installModelLogging } from './modelLogging.js';
 import type {
   AgenticConfig,
   ModelTier,
@@ -32,6 +33,7 @@ export interface InstallResult {
 const DEFAULT_CONTEXT_DIR = '.agentic/context';
 const DEFAULT_CACHE_DIR = '.agentic/cache';
 const DEFAULT_REGISTRY_DIR = '.agentic/registry';
+const LOGS_DIR = '.agentic/logs';
 
 /** Resolve the effective tier for a component, honouring config overrides. */
 export function effectiveTier(id: string, fallback: ModelTier, config: AgenticConfig): ModelTier {
@@ -187,16 +189,22 @@ export async function install(opts: InstallOptions): Promise<InstallResult> {
     await installForProvider(getProvider(pid), opts.cwd, opts, written);
   }
 
-  // Ensure generated context/cache/registry dirs are git-ignored (regenerable state).
-  await ensureGitignore(
-    opts.cwd,
-    [
-      opts.config.contextDir ?? DEFAULT_CONTEXT_DIR,
-      opts.config.cacheDir ?? DEFAULT_CACHE_DIR,
-      opts.config.registryDir ?? DEFAULT_REGISTRY_DIR,
-    ],
-    written,
-  );
+  // Per-provider model-usage logging (full install only, not `add`).
+  const modelLoggingOn = !opts.coreOnly && opts.config.modelLogging !== false;
+  if (modelLoggingOn) {
+    for (const pid of providers) {
+      await installModelLogging(pid, opts.cwd, written);
+    }
+  }
+
+  // Ensure generated context/cache/registry/log dirs are git-ignored (regenerable state).
+  const ignoreDirs = [
+    opts.config.contextDir ?? DEFAULT_CONTEXT_DIR,
+    opts.config.cacheDir ?? DEFAULT_CACHE_DIR,
+    opts.config.registryDir ?? DEFAULT_REGISTRY_DIR,
+  ];
+  if (modelLoggingOn) ignoreDirs.push(LOGS_DIR);
+  await ensureGitignore(opts.cwd, ignoreDirs, written);
 
   return { written };
 }

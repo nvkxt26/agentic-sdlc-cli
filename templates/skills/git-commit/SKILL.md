@@ -1,6 +1,6 @@
 ---
 name: git-commit
-description: Commit changes with a message following the format `[JIRA-TICKET]: <description>`. Validates the format before committing. Runs standalone or as the wrap-up step of the SDLC workflow.
+description: "Commit changes with a message following the format `[JIRA-TICKET]: <description>`. Validates the format before committing. Runs standalone or as the wrap-up step of the SDLC workflow."
 ---
 
 # git-commit skill

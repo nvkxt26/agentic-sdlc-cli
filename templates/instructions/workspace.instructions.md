@@ -15,12 +15,12 @@ When this repo is part of a **workspace** (a folder grouping several repos, mark
   ```
 
 ## Agent-to-agent questions
-When you need something only another repo can answer (does it own a capability? which module? blast radius?), **ask its Repo Q&A agent** rather than guessing:
+When you need something only another repo can answer (does it own a capability? which module? blast radius?), **ask its Mimir agent** rather than guessing:
 ```bash
 agentic-workflow run repo-bridge -- ask --repo <name> --question "..."   # post
 agentic-workflow run repo-bridge -- answers --id <questionId>            # read reply
 ```
-On the answering side, a repo's **repo-qa** agent watches its inbox:
+On the answering side, a repo's **mimir** agent watches its inbox:
 ```bash
 agentic-workflow run repo-bridge -- inbox
 agentic-workflow run repo-bridge -- answer --id <questionId> --file <answer.toon>

@@ -30,11 +30,13 @@ another's context.
 - [Plan an epic across repos](#plan-an-epic-across-repos)
 - [Extend it: write your own agents, skills & instructions](#extend-it-write-your-own-agents-skills--instructions)
 - [Codebase context & caching](#codebase-context--caching)
+- [Optional: knowledge graph with graphify](#optional-knowledge-graph-with-graphify)
 - [Models per task](#models-per-task)
 - [Deterministic skills](#deterministic-skills)
 - [Credentials](#credentials)
 - [Conventions](#conventions)
 - [CLI reference](#cli-reference)
+- [Development](#development)
 
 ---
 
@@ -175,18 +177,23 @@ The installed agents:
 | Senior Developer | Applies the plan (comments or real code) |
 | QA | Adds/updates unit + integration tests |
 | Code Reviewer | Review loop until clean |
-| **Repo Q&A** | Answers any question about the repo; refreshes context first when stale |
+| **Mimir** | Answers any question about the repo; refreshes context first when stale |
 | **Epic Planner** | Plans a whole epic across a group of repos |
 
 ---
 
 ## Ask questions about a repo
 
-The **Repo Q&A** agent (prompt `/ask-repo`) answers any question about the current
+**Mimir** (prompt `/ask-repo`) answers any question about the current
 repository — "where is auth handled?", "what would change to add SSO?" — grounded in
 real code and the generated context. Crucially, it **updates the context beforehand
 if it's stale**: it runs the `context-sync` skill, and if the default branch has
 moved since the last index, it refreshes via the context-builder before answering.
+
+> In Norse mythology, Mimir is the being Odin himself consults for wisdom — legend has
+> it Odin even keeps Mimir's severed, preserved head around specifically to ask it
+> questions. Our Mimir only asks for a stale-context refresh in return, which is
+> honestly a much better deal.
 
 ```
 /ask-repo where are retries configured for the payments client?
@@ -210,7 +217,7 @@ agentic-workflow workspace init
 This:
 - discovers member repos (immediate sub-dirs that are git repos),
 - writes `.agentic-workspace.json`,
-- installs the **workspace-level** agents (orchestrator, epic-planner, repo-qa …) at
+- installs the **workspace-level** agents (orchestrator, epic-planner, mimir …) at
   the workspace root, and
 - creates the shared **context registry** at `.agentic/registry/` (git-ignored).
 
@@ -228,7 +235,7 @@ agentic-workflow workspace list      # who is installed / published
 ### How repos communicate (cross-repo context)
 
 Agents never reach blindly into a sibling repo. They use the deterministic
-**repo-bridge** skill as the transport, paired with each repo's **Repo Q&A** agent as
+**repo-bridge** skill as the transport, paired with each repo's **Mimir** agent as
 the intelligence:
 
 ```bash
@@ -241,7 +248,7 @@ agentic-workflow run repo-bridge -- read --repo billing --file modules.toon
 
 # agent-to-agent Q&A (file mailbox in the registry)
 agentic-workflow run repo-bridge -- ask --repo billing --question "do you own invoice PDFs?"
-agentic-workflow run repo-bridge -- inbox                 # billing's repo-qa reads this
+agentic-workflow run repo-bridge -- inbox                 # billing's mimir reads this
 agentic-workflow run repo-bridge -- answer --id <id> --file answer.toon
 agentic-workflow run repo-bridge -- answers --id <id>     # asker collects the reply
 ```
@@ -258,7 +265,7 @@ one ticket. It:
 1. fetches the epic and its child issues (`jira` skill `--epic`),
 2. lists the workspace repos and their published context (`repo-bridge -- list`),
 3. **routes each ticket to the repo(s) that must change** — matching intent against
-   each repo's context and, when unclear, **asking that repo's Repo Q&A agent
+   each repo's context and, when unclear, **asking that repo's Mimir agent
    directly** through repo-bridge,
 4. sequences tickets by cross-repo dependencies (producer before consumer), and
 5. emits `docs/<EPIC>/epic-plan.toon` — a per-ticket, per-repo, ordered plan.
@@ -379,6 +386,63 @@ Locations are configurable in `.agentic-workflow.json`.
 
 ---
 
+## Optional: knowledge graph with graphify
+
+[graphify](https://github.com/Graphify-Labs/graphify) (`graphifyy` on PyPI) is an
+independent, open-source tool that maps a repo — code (via tree-sitter, offline, no
+API key), docs, PDFs, images — into a **queryable knowledge graph**
+(`graphify-out/graph.json`) with relationships, god-nodes and cross-file connections
+the flat `overview.toon`/`modules.toon` can't express. It is **entirely optional and
+additive**: the built-in TOON context above is the source of truth and keeps working
+unchanged whether or not graphify is installed.
+
+**Setup happens automatically during `init`** (best-effort, never blocks or fails the
+rest of the install):
+1. Detects the `graphify` CLI on `PATH`.
+2. If missing and you're running interactively, prompts to install it (`uv tool install
+   graphifyy`, falling back to `pipx`/`pip`). Skipped automatically with `-y`/`--yes`
+   (no surprise network calls in non-interactive/CI runs) — install it yourself anytime:
+   ```bash
+   uv tool install graphifyy && graphify install
+   ```
+3. If available, registers graphify's own skill + always-on instructions for each
+   configured provider, and builds the initial (offline, code-only) graph.
+4. Records the outcome in `.agentic-workflow.json` (`"graphify": true|false`).
+
+Opt out entirely with `agentic-workflow init --no-graphify`.
+
+**How it's used:**
+- **context-builder** refreshes the graph (`graphify -- build --update`) alongside the
+  TOON docs on every context sync, and may pull god-nodes/surprising-connections into
+  `overview.toon`. Skipped silently if graphify isn't available.
+- **mimir** / `/ask-repo` prefer `graphify -- query "<question>"` (or `path`/`explain`)
+  for *relationship* questions ("what connects X to Y", "what breaks if I change Z"),
+  falling back to the TOON context for everything else or when graphify is unavailable.
+- Call it directly any time:
+  ```bash
+  agentic-workflow run graphify -- status
+  agentic-workflow run graphify -- build
+  agentic-workflow run graphify -- query "what connects auth to the database?"
+  agentic-workflow run graphify -- path "UserService" "DatabasePool"
+  agentic-workflow run graphify -- explain "RateLimiter"
+  ```
+
+`graphify-out/` is meant to be committed (a shared map for the whole team); only
+`graphify-out/cost.json` and the local interpreter marker are git-ignored automatically.
+
+### graphify references
+
+- Repo: [github.com/Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify)
+- PyPI package (note the double-y): [pypi.org/project/graphifyy](https://pypi.org/project/graphifyy/)
+- Architecture: [ARCHITECTURE.md](https://github.com/Graphify-Labs/graphify/blob/v8/ARCHITECTURE.md)
+- Benchmarks (LOCOMO / LongMemEval-S recall vs. mem0, grep+read baselines): [BENCHMARKS.md](https://github.com/Graphify-Labs/graphify/blob/v8/BENCHMARKS.md)
+- Changelog: [CHANGELOG.md](https://github.com/Graphify-Labs/graphify/blob/v8/CHANGELOG.md)
+- Agent-facing instructions used by the `/graphify` skill: [AGENTS.md](https://github.com/Graphify-Labs/graphify/blob/v8/AGENTS.md)
+- Discord community: [discord.gg/598Ad9zQZ](https://discord.gg/598Ad9zQZ)
+- License: MIT ([LICENSE](https://github.com/Graphify-Labs/graphify/blob/v8/LICENSE))
+
+---
+
 ## Models per task
 
 Each agent/skill maps to a reasoning **tier**; each provider resolves the tier to a
@@ -401,6 +465,56 @@ agentic-workflow add architect --model reasoning-high
 To change the concrete **model names**, edit the model maps in the generated agent
 files, or adjust them at the source (`src/models.ts`) if you maintain a fork.
 
+### How the model pin is actually enforced (per provider)
+
+Writing `model:` into an agent's frontmatter isn't itself a guarantee — it only
+takes effect if the host you're running in (1) reads that field and (2) the
+persona is reached through **delegation** (its own subagent turn), not by another
+agent answering that stage inline. This differs by provider:
+
+| Provider | Enforcement | What this repo does to make it reliable |
+|---|---|---|
+| **OpenCode** | Host-enforced for both primary agents (switching to one in the TUI switches models) and subagents (the `task` tool always runs the target under its own `model:`). Strongest guarantee. | Nothing extra needed — `mode: primary\|subagent` + `model:` is sufficient. |
+| **Claude Code** | Honored **only** when the persona is invoked as a subagent via the `Task` tool. | `sdlc-orchestrator.agent.md` and `mimir.agent.md` explicitly instruct: delegate by name via the subagent tool, never answer a stage inline. |
+| **Copilot** (VS Code + CLI, same `.github/agents/*.agent.md` files) | Subagent model priority is *explicit param → the subagent's own `model:` → the invoking agent's model* — **but a subagent's requested model can never exceed the cost tier of the agent that invoked it**; a cheaper coordinator silently downgrades every subagent it calls. | 1) `model:` is emitted as an **array** (`model: ['Claude Opus 4.8 (copilot)', ...fallbacks]`) so VS Code tries each in order instead of silently falling back to the currently-picked model if the primary is unavailable to the user's plan. 2) The **SDLC Orchestrator** is pinned to `reasoning-max` (not the lighter tier its own sequencing work would need) specifically so it's never the cost ceiling for the personas it delegates to. 3) Subagent-only personas get `user-invocable: false` (hidden from the top-level agent picker — same intent as OpenCode's `mode: subagent`). 4) Coordinating agents (`sdlc-orchestrator`, `mimir`) get an `agents:` allowlist naming exactly which personas they may invoke, so Copilot can't pick an unintended similarly-named agent. |
+
+Two residual caveats no configuration can close:
+- **Unavailable model, no error.** If none of the pinned models (primary + fallbacks) are enabled for the user's plan, hosts generally fall back silently rather than erroring.
+- **Nothing verifies compliance after the fact** from this repo's side. To actually *see* which model ran (not just which was configured), see the model-usage logger below.
+
+### Which model actually ran? (model-usage logging)
+
+The tier table above is the *intended* model per agent. To see which model each
+agent **actually** ran on, `init` installs a per-provider logger that appends a
+`START`/`END` line for every agent turn to `.agentic/logs/model-usage.log`
+(git-ignored). What it can capture differs by runtime — because only some hosts
+expose the resolved model to a hook/plugin:
+
+| Provider | Mechanism installed | Model logged |
+|---|---|---|
+| **OpenCode** | plugin `.opencode/plugins/agentic-model-logger.js` (reads `message.updated` events) | **Actual** resolved `provider/model` |
+| **Claude Code** | `Stop` + `SubagentStop` hooks in `.claude/settings.json` (parse the session transcript) | **Actual** model from the transcript |
+| **GitHub Copilot** | `.github/hooks/agentic-model-logging.json` + logger script | **Intended** (configured) model only — see note |
+
+> **Why Copilot is intended-only:** Copilot's `SubagentStart`/`SubagentStop` hook
+> payloads expose the agent *name* and lifecycle but **not** the resolved model,
+> and its transcript format is documented as unstable. Asking the model to
+> self-report is unreliable (models hallucinate their own identity). So on
+> Copilot the logger records the agent's configured model; to see the **actual**
+> model, hover the subagent's collapsed tool call in the chat view (it shows the
+> model + AI credits) or run **Developer: Show Agent Debug Logs**.
+
+Example `.agentic/logs/model-usage.log`:
+
+```
+2026-07-05T23:52:18Z SubagentStop source=actual   model=claude-opus-4-1-20250805 agent=architect session=s1
+2026-07-05T23:52:41Z END           source=actual   provider=anthropic model=claude-sonnet-4-5 agent=qa session=abc
+2026-07-05T23:53:02Z SubagentStop source=intended model=Claude Opus 4.8 (copilot) agent=architect session=s1 note="actual model: hover the subagent in chat for model+credits"
+```
+
+Disable with `agentic-workflow init --no-model-logging` (persisted as
+`"modelLogging": false` in `.agentic-workflow.json`).
+
 ---
 
 ## Deterministic skills
@@ -417,6 +531,7 @@ agentic-workflow run git-commit -- --ticket FXDOMAIN-1234 --message "add retry" 
 agentic-workflow run context-sync -- --context-dir .agentic/context
 agentic-workflow run cache -- get --key jira:FXDOMAIN-1234 --raw
 agentic-workflow run repo-bridge -- list
+agentic-workflow run graphify -- query "what connects auth to the database?"
 ```
 
 ---
@@ -449,7 +564,7 @@ values to a gitignored `.env` / your shell profile:
 
 | Command | Description |
 |---|---|
-| `init [-y] [--provider <ids>] [--global]` | Scaffold into the project for the chosen provider(s) |
+| `init [-y] [--provider <ids>] [--global] [--no-graphify] [--no-model-logging]` | Scaffold into the project for the chosen provider(s) |
 | `list` / `ls` | List agents and skills with their resolved models per provider |
 | `add <skill\|agent> [--model <tier>] [--provider <ids>]` | Add one component |
 | `run <skill> -- <args>` | Run a deterministic skill script (emits TOON) |
@@ -463,10 +578,127 @@ values to a gitignored `.env` / your shell profile:
 
 ## Development
 
+### Setup
+
 ```bash
+git clone <this-repo>
+cd agentic-workflow-cli
 npm install
 npm run build      # tsc → dist/
-npm run dev -- list
+npm run dev -- list   # run straight from src/ via tsx, no build needed
+```
+
+`npm run dev -- <args>` runs the CLI directly from TypeScript (`tsx src/index.ts`) —
+use it while iterating so you don't have to rebuild after every change. Use
+`npm run build && npm run start -- <args>` (or `node dist/index.js <args>`) to test
+the compiled output that actually ships (what `npm run prepublishOnly` produces).
+
+There is no automated test suite yet — verify changes by exercising the CLI end to
+end against a disposable scratch repo, as described below.
+
+### Testing the CLI locally end to end
+
+Never run `init`/`add`/`workspace init` against this repo itself — always target a
+throwaway git repo so you can freely inspect/diff/delete the generated files:
+
+```bash
+# 1. build once
+npm run build
+
+# 2. make a disposable target repo
+rm -rf /tmp/agentic-test && mkdir -p /tmp/agentic-test && cd /tmp/agentic-test && git init -q
+
+# 3a. run against a single provider, non-interactively
+node /path/to/agentic-workflow-cli/dist/index.js init -y -p opencode
+
+# 3b. or run the full interactive prompt flow (docs dir, review loops, output
+#     mode, provider checkbox, credentials) exactly as a real user would see it
+node /path/to/agentic-workflow-cli/dist/index.js init
+
+# 4. inspect what was written
+ls -R .opencode .github .claude 2>/dev/null
+cat .agentic-workflow.json
+cat .gitignore
+```
+
+Alternatively, `npm link` puts the CLI on `PATH` as `agentic-workflow` so you can test
+it exactly the way an end user (or the npm `postinstall` hook) would invoke it:
+
+```bash
+cd /path/to/agentic-workflow-cli && npm run build && npm link
+cd /tmp/agentic-test && npm link @nvkxt26/agentic-workflow-cli   # or just: agentic-workflow init
+agentic-workflow list
+agentic-workflow add mimir --provider claude
+agentic-workflow run context-sync -- --context-dir .agentic/context
+```
+
+Things worth exercising after any change to `src/` or `templates/`:
+
+| Area | Command |
+|---|---|
+| Fresh install, all providers | `init` (interactive) then re-run `init` again to confirm the "overwrite?" prompt and idempotency |
+| Fresh install, flags only | `init -y -p copilot,claude,opencode -d docs --global` |
+| Single component | `add <agent-or-skill-id> --provider opencode --model reasoning-high` |
+| Listing | `list` — confirm every agent/skill in `src/registry.ts` shows up with the right resolved model |
+| Deterministic skills | `run git-branch -- --type feat --ticket TEST-1 --desc "try thing"`, `run cache -- set --key k --value v`, etc. — each must emit valid TOON on success **and** on failure (bad args, missing env, not-a-git-repo) |
+| Workspace | in a folder containing 2+ git repos: `workspace init`, `workspace list`, `workspace sync` |
+| `.gitignore` handling | confirm `.agentic/context`, `.agentic/cache`, `.agentic/registry` (and, if graphify ran, `graphify-out/cost.json`) get appended exactly once, even across repeated `init` runs |
+
+When you change a template body (`templates/**/*.md`), rebuild and re-run `init`/`add`
+and check the rendered output under the target repo's provider directories — every
+`{{PLACEHOLDER}}` should be substituted (grep the output for a stray `{{` to catch
+missed ones).
+
+### Testing the graphify integration
+
+The graphify wiring (`src/graphify.ts`, `templates/skills/graphify/`) is best-effort
+and must degrade gracefully whether or not the third-party CLI is present. Test both
+paths:
+
+**1. Without the `graphify` CLI installed** (the common case for most contributors):
+
+```bash
+which graphify || echo "not installed, good — this is the path most users hit"
+cd /tmp/agentic-test && node /path/to/agentic-workflow-cli/dist/index.js init -y -p opencode
+# expect: "graphify not installed ... Install later: uv tool install graphifyy && graphify install"
+# and .agentic-workflow.json should contain "graphify": false
+
+node /path/to/agentic-workflow-cli/dist/index.js run graphify -- status
+node /path/to/agentic-workflow-cli/dist/index.js run graphify -- query "anything"
+# both must print a TOON `error`/`available: false` block and exit non-zero —
+# never a stack trace, never a zero exit code
+```
+
+**2. With the `graphify` CLI installed** (install once, real network/package call):
+
+```bash
+uv tool install graphifyy    # or: pipx install graphifyy / pip install --user graphifyy
+graphify --version
+
+cd /tmp/agentic-test
+node /path/to/agentic-workflow-cli/dist/index.js init -y -p opencode
+cat .agentic-workflow.json    # expect "graphify": true
+ls graphify-out/              # expect graph.json (+ GRAPH_REPORT.md unless --no-viz suppressed it)
+
+node /path/to/agentic-workflow-cli/dist/index.js run graphify -- status
+node /path/to/agentic-workflow-cli/dist/index.js run graphify -- build --update
+node /path/to/agentic-workflow-cli/dist/index.js run graphify -- query "what connects the CLI entrypoint to the installer?"
+node /path/to/agentic-workflow-cli/dist/index.js run graphify -- explain "install"
+```
+
+**3. Interactive install prompt** — run `init` (no `-y`) with graphify CLI *not*
+installed, and confirm you're prompted to install it; answer "no" and confirm the run
+still completes cleanly with `"graphify": false`.
+
+**4. Opt-out flag** — `init -y --no-graphify` should skip all graphify detection/setup
+entirely, regardless of whether the CLI is installed.
+
+Clean up afterwards:
+
+```bash
+rm -rf /tmp/agentic-test
+npm unlink -g @nvkxt26/agentic-workflow-cli   # if you used npm link
+uv tool uninstall graphifyy                    # if you installed it just for testing
 ```
 
 ---

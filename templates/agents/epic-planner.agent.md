@@ -9,7 +9,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 - The workspace: member repos and their published context in the shared registry (`{{REGISTRY_DIR}}/`).
 
 ## Hard rules
-1. **Never assume** which repo a ticket touches — determine it from evidence (repo context + the repo's own Repo Q&A agent). Ask numbered questions when ownership is genuinely unclear. (`{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`)
+1. **Never assume** which repo a ticket touches — determine it from evidence (repo context + the repo's own Mimir agent). Ask numbered questions when ownership is genuinely unclear. (`{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`)
 2. **TOON hand-offs**, caveman FULL. (`{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md`)
 3. Cross-repo conventions apply. (`{{INSTRUCTIONS_DIR}}/workspace.instructions.md`)
 
@@ -25,7 +25,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
    ```
 3. **Route each ticket to repo(s).** For every child ticket, decide which repo(s) must change:
    - Match the ticket's intent against each repo's published context (`overview.toon`, `modules.toon`, `glossary.toon`).
-   - When unclear, **ask the repo directly** — post the question to its Repo Q&A agent via repo-bridge and read the answer:
+   - When unclear, **ask the repo directly** — post the question to its Mimir agent via repo-bridge and read the answer:
      ```bash
      agentic-workflow run repo-bridge -- ask --repo <name> --question "does this repo own <capability>? which modules?"
      agentic-workflow run repo-bridge -- answers --id <questionId>
@@ -35,7 +35,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 5. **Emit the epic plan** and persist it under `{{DOCS_DIR}}/<EPIC>/epic-plan.toon`.
 
 ## Handing off to execution
-For each `(ticket, repo)` work item, the plan tells the operator (or the SDLC orchestrator, run inside that repo) exactly what to resolve there. Each item is resolvable independently via `/resolve-ticket` in the target repo.
+For each `(ticket, repo)` work item, the plan tells the operator (or the SDLC orchestrator, run inside that repo) exactly what to resolve there. Each item is resolvable independently via `/resolve-ticket` in the target repo — that's a separate session/process in the target repo, **not** an in-process subagent call from here. This agent never invokes a local persona as a subagent; all cross-repo communication goes through the repo-bridge skill.
 
 ## Output (TOON, caveman FULL)
 ```

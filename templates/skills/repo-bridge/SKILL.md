@@ -1,13 +1,13 @@
 ---
 name: repo-bridge
-description: Cross-repo context channel for a workspace (a folder grouping several repos). Publish this repo's generated context to a shared registry, read peer repos' context, and exchange questions/answers between repos' agents via a file mailbox. Use when an agent needs information from — or must coordinate with — a sibling repo.
+description: "Cross-repo context channel for a workspace (a folder grouping several repos). Publish this repo's generated context to a shared registry, read peer repos' context, and exchange questions/answers between repos' agents via a file mailbox. Use when an agent needs information from — or must coordinate with — a sibling repo."
 ---
 
 # repo-bridge skill
 
 Default model tier: `{{TIER}}` (`{{MODEL}}`) — deterministic; the model only orchestrates calls and interprets results.
 
-The channel that lets agents/skills in **different repos communicate about repo context**. It is paired with the **Repo Q&A** agent: repo-bridge is the deterministic transport (publish/read/mailbox); repo-qa is the intelligence that answers.
+The channel that lets agents/skills in **different repos communicate about repo context**. It is paired with the **Mimir** agent: repo-bridge is the deterministic transport (publish/read/mailbox); mimir is the intelligence that answers.
 
 Requires a workspace root (`.agentic-workspace.json`, created by `agentic-workflow workspace init`). The shared registry lives at `<workspace>/{{REGISTRY_DIR}}/` (git-ignored).
 
@@ -27,7 +27,7 @@ agentic-workflow run repo-bridge -- read --repo billing --file modules.toon
 # ask a peer repo a question (queued to its inbox); prints a question id
 agentic-workflow run repo-bridge -- ask --repo billing --question "does this repo own invoice PDF generation? which modules?"
 
-# on the answering side: the repo-qa agent reads pending questions...
+# on the answering side: the mimir agent reads pending questions...
 agentic-workflow run repo-bridge -- inbox
 # ...answers one (TOON body, caveman FULL)
 agentic-workflow run repo-bridge -- answer --id <id> --file answer.toon
