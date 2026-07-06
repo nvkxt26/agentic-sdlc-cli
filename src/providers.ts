@@ -67,7 +67,10 @@ const COPILOT_TOOLS: Record<Capability, string[]> = {
   tests: ['findTestFiles', 'testFailure'],
   changes: ['changes'],
   todos: ['todos'],
-  subagents: ['runSubagent'],
+  // Both names are included: VS Code docs refer to this as "the agent/runSubagent
+  // tool" — include both so whichever name the installed VS Code build expects
+  // is present. Required for `agents:` frontmatter delegation to work at all.
+  subagents: ['runSubagent', 'agent'],
 };
 
 const CLAUDE_TOOLS: Record<Capability, string[]> = {
@@ -102,6 +105,19 @@ function mapTools(caps: Capability[], table: Record<Capability, string[]>): stri
   return [...out];
 }
 
+/**
+ * Render a free-text value (descriptions, names) as a YAML double-quoted
+ * scalar. Plain (unquoted) YAML scalars break on a bare `: ` (colon+space) —
+ * several registry descriptions contain one (e.g. "...group of repos: fetches
+ * ..."), which would otherwise corrupt the frontmatter and silently drop every
+ * field after it (`model`, `tools`, `agents`, ...). `JSON.stringify` produces
+ * valid YAML double-quoted-scalar escaping for plain strings, so it's a safe,
+ * dependency-free way to always quote correctly.
+ */
+function yamlString(value: string): string {
+  return JSON.stringify(value);
+}
+
 // ---- provider specs ---------------------------------------------------------
 
 const copilot: ProviderSpec = {
@@ -116,27 +132,42 @@ const copilot: ProviderSpec = {
   agentFile: (id) => `${id}.agent.md`,
   instructionFile: (id) => `${id}.instructions.md`,
   promptFile: (id) => `${id}.prompt.md`,
-  agentFrontmatter(a, model) {
+  agentFrontmatter(a, model, fallbacks) {
     const tools = mapTools(a.capabilities, COPILOT_TOOLS);
-    return [
+    const models = [model, ...fallbacks].map((m) => `'${m}'`).join(', ');
+    const lines = [
       '---',
-      `description: ${a.description}`,
-      `model: ${model}`,
+      `description: ${yamlString(a.description)}`,
+      // Array form: VS Code tries each model in order until one is available
+      // to the user's plan, instead of silently falling back to whatever the
+      // picker currently has selected if the primary model is unavailable.
+      `model: [${models}]`,
       `tools: [${tools.map((t) => `'${t}'`).join(', ')}]`,
-      '---',
-      '',
-    ].join('\n');
+    ];
+    // Persona subagents are delegation-only: keep them out of the top-level
+    // agents dropdown so users always enter through orchestrator/mimir/
+    // epic-planner, matching OpenCode's mode:subagent semantics.
+    if (!a.primary) lines.push('user-invocable: false');
+    // Restrict which custom agents this one may invoke as a subagent. Without
+    // this, Copilot may pick an unintended agent with a similar name/description
+    // instead of the one this workflow expects.
+    if (a.subagents?.length) {
+      lines.push(`agents: [${a.subagents.map((s) => `'${s}'`).join(', ')}]`);
+    }
+    lines.push('---', '');
+    return lines.join('\n');
   },
   instructionFrontmatter(i) {
-    return ['---', `applyTo: '**'`, `description: ${i.description}`, '---', ''].join('\n');
+    return ['---', `applyTo: '**'`, `description: ${yamlString(i.description)}`, '---', ''].join('\n');
   },
-  promptFrontmatter(p, model) {
+  promptFrontmatter(p, model, fallbacks) {
     const tools = mapTools(p.capabilities, COPILOT_TOOLS);
+    const models = [model, ...fallbacks].map((m) => `'${m}'`).join(', ');
     return [
       '---',
       'mode: agent',
-      `description: ${p.description}`,
-      `model: ${model}`,
+      `description: ${yamlString(p.description)}`,
+      `model: [${models}]`,
       `tools: [${tools.map((t) => `'${t}'`).join(', ')}]`,
       '---',
       '',
@@ -167,7 +198,7 @@ const claude: ProviderSpec = {
     return [
       '---',
       `name: ${a.id}`,
-      `description: ${a.description}`,
+      `description: ${yamlString(a.description)}`,
       `tools: ${tools.join(', ')}`,
       `model: ${model}`,
       '---',
@@ -179,7 +210,7 @@ const claude: ProviderSpec = {
     return '';
   },
   promptFrontmatter(p, model) {
-    return ['---', `description: ${p.description}`, `model: ${model}`, '---', ''].join('\n');
+    return ['---', `description: ${yamlString(p.description)}`, `model: ${model}`, '---', ''].join('\n');
   },
   global: {
     agentsDir: join(homedir(), '.claude', 'agents'),
@@ -206,7 +237,7 @@ const opencode: ProviderSpec = {
     const toolLines = tools.map((t) => `  ${t}: true`).join('\n');
     return [
       '---',
-      `description: ${a.description}`,
+      `description: ${yamlString(a.description)}`,
       `mode: ${a.primary ? 'primary' : 'subagent'}`,
       `model: ${model}`,
       'tools:',
@@ -219,7 +250,7 @@ const opencode: ProviderSpec = {
     return '';
   },
   promptFrontmatter(p, model) {
-    return ['---', `description: ${p.description}`, `model: ${model}`, '---', ''].join('\n');
+    return ['---', `description: ${yamlString(p.description)}`, `model: ${model}`, '---', ''].join('\n');
   },
   global: {
     agentsDir: join(homedir(), '.config', 'opencode', 'agent'),

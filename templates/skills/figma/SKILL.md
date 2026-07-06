@@ -1,6 +1,6 @@
 ---
 name: figma
-description: Fetch Figma node metadata and rendered images from a Figma design link, optionally saving the images locally, and emit a TOON summary. Use when a Jira ticket references Figma designs so visual changes can be identified.
+description: "Fetch Figma node metadata and rendered images from a Figma design link, optionally saving the images locally, and emit a TOON summary. Use when a Jira ticket references Figma designs so visual changes can be identified."
 ---
 
 # figma skill

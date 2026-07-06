@@ -23,6 +23,8 @@ export function defaultConfig(): AgenticConfig {
       'FIGMA_API_TOKEN',
     ],
     modelOverrides: {},
+    graphify: true,
+    modelLogging: true,
   };
 }
 

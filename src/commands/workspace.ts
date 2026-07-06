@@ -90,7 +90,7 @@ export async function workspaceInit(flags: WorkspaceFlags): Promise<void> {
   await mkdir(join(root, ws.registryDir), { recursive: true });
 
   // Install the full component set at the workspace root so orchestrator,
-  // epic-planner and repo-qa are available across the group.
+  // epic-planner and mimir are available across the group.
   const result = await install({ cwd: root, config: workspaceAgenticConfig(ws) });
 
   console.log(pc.green(`\n✓ Workspace initialised at ${pc.cyan(root)} (${result.written.length + 1} files).`));

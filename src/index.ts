@@ -29,6 +29,14 @@ program
     '--global',
     'also install to each provider\'s user-level locations (available in every project)',
   )
+  .option(
+    '--no-graphify',
+    'skip the optional graphify knowledge-graph layer entirely (default: attempt best-effort)',
+  )
+  .option(
+    '--no-model-logging',
+    'skip installing the per-provider model-usage logger (.agentic/logs/model-usage.log)',
+  )
   .action((opts) => initCommand(opts));
 
 program

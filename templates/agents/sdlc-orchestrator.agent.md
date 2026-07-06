@@ -36,7 +36,7 @@ Between stages:
 
 ## Delegation
 
-Invoke each persona via its agent/skill. Pass the upstream TOON verbatim as context. Confirm the stage's exit criteria are met (e.g. build succeeds for develop, tests pass for QA, review clean for reviewer) before advancing.
+**Delegate, never role-play.** Each persona is pinned to its own model (see the tier next to its name in the workflow above) precisely so heavy reasoning (architect, code-reviewer) and lighter work (context-builder) run on the right-sized model. That pin only takes effect if you actually invoke the persona through your host's subagent mechanism (the `agent`/`runSubagent`/`Task`/`task` tool, by the persona's exact name — `product`, `context-builder`, `architect`, `senior-developer`, `qa`, `code-reviewer`). **Do not** answer a stage's work yourself inline "as if" you were that persona — that silently reruns the whole pipeline on this agent's own model and defeats the per-task model routing. Pass the upstream TOON verbatim as the subagent's input. Confirm the stage's exit criteria are met (e.g. build succeeds for develop, tests pass for QA, review clean for reviewer) before advancing.
 
 ## Standalone mode
 

@@ -1,6 +1,6 @@
 ---
 name: confluence
-description: Deterministically fetch a Confluence page (by id, or by title + space key) and emit its content as TOON. Use when a ticket references supporting documentation. Runs standalone or in-workflow.
+description: "Deterministically fetch a Confluence page (by id, or by title + space key) and emit its content as TOON. Use when a ticket references supporting documentation. Runs standalone or in-workflow."
 ---
 
 # confluence skill

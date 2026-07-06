@@ -1,6 +1,6 @@
 ---
 name: context-sync
-description: Detect the repo's default branch (main/develop/master) and emit the file diff since the last indexed context commit (full list on first run). Tracks the indexed-commit marker. Runs standalone or as the setup step that feeds the context-builder agent.
+description: "Detect the repo's default branch (main/develop/master) and emit the file diff since the last indexed context commit (full list on first run). Tracks the indexed-commit marker. Runs standalone or as the setup step that feeds the context-builder agent."
 ---
 
 # context-sync skill

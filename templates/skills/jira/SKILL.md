@@ -1,6 +1,6 @@
 ---
 name: jira
-description: Deterministically fetch a Jira issue (fields, description, comments, links, Figma links) — or a whole epic with its child issues (--epic) — and emit it as TOON. Use when a ticket's or epic's details are needed. Runs standalone or as the first step of the SDLC / epic-planning workflow.
+description: "Deterministically fetch a Jira issue (fields, description, comments, links, Figma links) — or a whole epic with its child issues (--epic) — and emit it as TOON. Use when a ticket's or epic's details are needed. Runs standalone or as the first step of the SDLC / epic-planning workflow."
 ---
 
 # jira skill
