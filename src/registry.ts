@@ -44,6 +44,7 @@ export const AGENTS: AgentDefinition[] = [
       'product',
       'context-builder',
       'architect',
+      'plan-flowchart',
       'senior-developer',
       'qa',
       'code-reviewer',
@@ -82,6 +83,18 @@ export const AGENTS: AgentDefinition[] = [
     order: 3,
   },
   {
+    id: 'plan-flowchart',
+    name: 'Plan Flowchart',
+    description:
+      'Creates an optional Mermaid flowchart from plan.toon so humans can inspect the architect\'s implementation path in detail.',
+    tier: 'reasoning-high',
+    capabilities: ['read', 'edit'],
+    template: 'agents/plan-flowchart.agent.md',
+    outFile: 'plan-flowchart',
+    order: 4,
+    primary: true,
+  },
+  {
     id: 'senior-developer',
     name: 'Senior Developer',
     description:
@@ -90,7 +103,7 @@ export const AGENTS: AgentDefinition[] = [
     capabilities: ['read', 'search', 'usages', 'edit', 'run', 'tests', 'changes'],
     template: 'agents/senior-developer.agent.md',
     outFile: 'senior-developer',
-    order: 4,
+    order: 5,
   },
   {
     id: 'qa',
@@ -100,7 +113,7 @@ export const AGENTS: AgentDefinition[] = [
     capabilities: ['read', 'search', 'usages', 'edit', 'run', 'tests', 'changes'],
     template: 'agents/qa.agent.md',
     outFile: 'qa',
-    order: 5,
+    order: 6,
   },
   {
     id: 'code-reviewer',
@@ -111,7 +124,7 @@ export const AGENTS: AgentDefinition[] = [
     capabilities: ['read', 'search', 'usages', 'edit', 'run', 'tests', 'changes'],
     template: 'agents/code-reviewer.agent.md',
     outFile: 'code-reviewer',
-    order: 6,
+    order: 7,
   },
   {
     id: 'mimir',
@@ -122,7 +135,7 @@ export const AGENTS: AgentDefinition[] = [
     capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'subagents'],
     template: 'agents/mimir.agent.md',
     outFile: 'mimir',
-    order: 7,
+    order: 8,
     primary: true,
     subagents: ['context-builder'],
   },
@@ -139,7 +152,7 @@ export const AGENTS: AgentDefinition[] = [
     capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'edit', 'todos'],
     template: 'agents/epic-planner.agent.md',
     outFile: 'epic-planner',
-    order: 8,
+    order: 9,
     primary: true,
   },
 ];
