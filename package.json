@@ -1,5 +1,5 @@
 {
-  "name": "@nvkxt26/agentic-workflow-cli",
+  "name": "@nvkxt26/agentic-sdlc-cli",
   "version": "1.6.0",
   "description": "Installable agentic SDLC workflow CLI for GitHub Copilot, Claude Code and OpenCode — persona agents, deterministic skills, an orchestrator, cross-repo workspaces and epic planning that communicate via TOON/caveman format",
   "main": "dist/index.js",
@@ -33,7 +33,7 @@
   },
   "type": "module",
   "bin": {
-    "agentic-workflow": "dist/index.js"
+    "agentic-sdlc": "dist/index.js"
   },
   "engines": {
     "node": ">=22"

@@ -12,6 +12,7 @@ import {
   defaultConfig,
 } from '../config.js';
 import { install } from '../installer.js';
+import { CONFIG_FILE, LEGACY_CONFIG_FILE } from '../paths.js';
 import { isProviderId, PROVIDER_IDS, PROVIDERS, getProvider } from '../providers.js';
 import type { AgenticConfig, ProviderId, WorkspaceConfig, WorkspaceRepo } from '../types.js';
 
@@ -101,8 +102,8 @@ export async function workspaceInit(flags: WorkspaceFlags): Promise<void> {
   console.log(
     pc.dim(
       '\nNext:\n' +
-        '  1. In each repo: `agentic-workflow init` (per-repo agents/skills).\n' +
-        '  2. `agentic-workflow workspace sync` to publish each repo\'s context to the registry.\n' +
+        '  1. In each repo: `agentic-sdlc init` (per-repo agents/skills).\n' +
+        '  2. `agentic-sdlc workspace sync` to publish each repo\'s context to the registry.\n' +
         '  3. Use the Epic Planner agent (or /plan-epic) at the workspace root.',
     ),
   );
@@ -113,7 +114,7 @@ export async function workspaceList(flags: WorkspaceFlags): Promise<void> {
   const start = flags.cwd ? resolve(process.cwd(), flags.cwd) : process.cwd();
   const root = findWorkspaceRoot(start);
   if (!root) {
-    console.error(pc.red('No .agentic-workspace.json found. Run `agentic-workflow workspace init` first.'));
+    console.error(pc.red('No .agentic-workspace.json found. Run `agentic-sdlc workspace init` first.'));
     process.exitCode = 1;
     return;
   }
@@ -124,7 +125,8 @@ export async function workspaceList(flags: WorkspaceFlags): Promise<void> {
   console.log(pc.bold(`\nRepos (${ws.repos.length}):`));
   for (const r of ws.repos) {
     const abs = repoAbsPath(root, r);
-    const installed = existsSync(join(abs, '.agentic-workflow.json'));
+    const installed =
+      existsSync(join(abs, CONFIG_FILE)) || existsSync(join(abs, LEGACY_CONFIG_FILE));
     const published = existsSync(join(root, ws.registryDir, r.name, 'context'));
     const flag = (ok: boolean, label: string) => (ok ? pc.green(label) : pc.dim(label));
     console.log(
@@ -139,7 +141,7 @@ export async function workspaceSync(flags: WorkspaceFlags): Promise<void> {
   const start = flags.cwd ? resolve(process.cwd(), flags.cwd) : process.cwd();
   const root = findWorkspaceRoot(start);
   if (!root) {
-    console.error(pc.red('No .agentic-workspace.json found. Run `agentic-workflow workspace init` first.'));
+    console.error(pc.red('No .agentic-workspace.json found. Run `agentic-sdlc workspace init` first.'));
     process.exitCode = 1;
     return;
   }

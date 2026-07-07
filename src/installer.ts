@@ -3,7 +3,14 @@ import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { templatesDir } from './paths.js';
-import { getProvider, type ProviderSpec } from './providers.js';
+import {
+  COPILOT_AGENTIC_SDLC_AGENTS_DIR,
+  COPILOT_AGENTIC_SDLC_INSTRUCTIONS_DIR,
+  COPILOT_AGENTIC_SDLC_PROMPTS_DIR,
+  COPILOT_AGENTIC_SDLC_SKILLS_DIR,
+  getProvider,
+  type ProviderSpec,
+} from './providers.js';
 import { AGENTS, SKILLS, INSTRUCTIONS, PROMPTS } from './registry.js';
 import { installModelLogging } from './modelLogging.js';
 import type {
@@ -203,6 +210,15 @@ export async function install(opts: InstallOptions): Promise<InstallResult> {
     opts.config.cacheDir ?? DEFAULT_CACHE_DIR,
     opts.config.registryDir ?? DEFAULT_REGISTRY_DIR,
   ];
+  if (opts.config.gitignoreSdlc !== false && providers.includes('copilot')) {
+    ignoreDirs.push(
+      COPILOT_AGENTIC_SDLC_AGENTS_DIR,
+      COPILOT_AGENTIC_SDLC_PROMPTS_DIR,
+      COPILOT_AGENTIC_SDLC_INSTRUCTIONS_DIR,
+      COPILOT_AGENTIC_SDLC_SKILLS_DIR,
+      '.vscode/settings.json',
+    );
+  }
   if (modelLoggingOn) ignoreDirs.push(LOGS_DIR);
   await ensureGitignore(opts.cwd, ignoreDirs, written);
 
@@ -231,7 +247,7 @@ export async function ensureGitignore(
     .filter((e) => e && !present.has(e));
   if (missing.length === 0) return;
 
-  const MARKER = '# agentic-workflow (generated context + cache + registry)';
+  const MARKER = '# agentic-sdlc (generated context + cache + registry)';
   if (body.length > 0 && !body.endsWith('\n')) body += '\n';
   if (!body.includes(MARKER)) body += `\n${MARKER}\n`;
   for (const e of missing) body += `${e}/\n`;
@@ -330,12 +346,12 @@ export async function writeEnvExample(
   const profile =
     process.platform === 'win32' ? '$PROFILE (PowerShell)' : shellProfilePath() || '~/.profile';
   const lines = [
-    '# Environment variables required by agentic-workflow deterministic skills.',
+    '# Environment variables required by agentic-sdlc deterministic skills.',
     `# Add these exports to your shell profile (${profile}):`,
     '#',
     ...envVars.map((v) => `#   export ${v}="your-value-here"`),
     '#',
-    '# Or run `npx agentic-workflow init` to set them interactively.',
+    '# Or run `npx agentic-sdlc init` to set them interactively.',
     '',
   ];
   const dest = join(cwd, '.env.example');

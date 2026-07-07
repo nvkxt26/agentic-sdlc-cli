@@ -97,7 +97,7 @@ if (!WS_ROOT) {
 const wsCfg = readJson(join(WS_ROOT, '.agentic-workspace.json'), {});
 const REGISTRY = join(WS_ROOT, wsCfg.registryDir || '.agentic/registry');
 
-const repoCfg = readJson(join(REPO, '.agentic-workflow.json'), {});
+const repoCfg = readJson(join(REPO, '.agentic-sdlc.json'), {});
 const CONTEXT_DIR = join(REPO, repoCfg.contextDir || '.agentic/context');
 
 function ensureDir(p) { if (!existsSync(p)) mkdirSync(p, { recursive: true }); }

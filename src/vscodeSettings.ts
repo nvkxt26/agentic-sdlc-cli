@@ -1,30 +1,58 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import {
+  COPILOT_AGENTIC_SDLC_AGENTS_DIR,
+  COPILOT_AGENTIC_SDLC_INSTRUCTIONS_DIR,
+  COPILOT_AGENTIC_SDLC_PROMPTS_DIR,
+} from './providers.js';
 
 const SETTINGS_FILE = join('.vscode', 'settings.json');
 
 const SAFE_TERMINAL_AUTO_APPROVE: Record<string, boolean> = {
   '/^mkdir(\\s+-p)?\\s+(("|\')?docs\\/tickets\\/)/': true,
-  '/^(npx\\s+)?agentic-workflow\\s+run\\s+jira\\b/': true,
-  '/^(npx\\s+)?agentic-workflow\\s+run\\s+confluence\\b/': true,
-  '/^(npx\\s+)?agentic-workflow\\s+run\\s+figma\\b/': true,
-  '/^(npx\\s+)?agentic-workflow\\s+run\\s+context-sync\\b/': true,
-  '/^(npx\\s+)?agentic-workflow\\s+run\\s+cache\\b/': true,
-  '/^(npx\\s+)?agentic-workflow\\s+run\\s+repo-bridge\\b/': true,
-  '/^(npx\\s+)?agentic-workflow\\s+run\\s+graphify\\b/': true,
-  '/^(npx\\s+)?agentic-workflow\\s+run\\s+git-branch\\b/': true,
+  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+jira\\b/': true,
+  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+confluence\\b/': true,
+  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+figma\\b/': true,
+  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+context-sync\\b/': true,
+  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+cache\\b/': true,
+  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+repo-bridge\\b/': true,
+  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+graphify\\b/': true,
+  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+git-branch\\b/': true,
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
+function booleanRecord(v: unknown): Record<string, boolean> {
+  return isRecord(v)
+    ? Object.fromEntries(Object.entries(v).map(([k, value]) => [k, Boolean(value)]))
+    : {};
+}
+
+function mergeBooleanRecord(
+  root: Record<string, unknown>,
+  key: string,
+  entries: Record<string, boolean>,
+): void {
+  const current = booleanRecord(root[key]);
+  for (const [pattern, value] of Object.entries(entries)) current[pattern] = value;
+  root[key] = current;
+}
+
+interface VscodeSettingsOptions {
+  includeCopilotCustomizations?: boolean;
+}
+
 /**
  * Create/update workspace `.vscode/settings.json` with safe terminal
  * auto-approval patterns used by the SDLC workflow setup + product stages.
  */
-export async function upsertVscodeSettings(cwd: string): Promise<string> {
+export async function upsertVscodeSettings(
+  cwd: string,
+  opts: VscodeSettingsOptions = {},
+): Promise<string> {
   const path = join(cwd, SETTINGS_FILE);
   let root: Record<string, unknown> = {};
 
@@ -41,16 +69,19 @@ export async function upsertVscodeSettings(cwd: string): Promise<string> {
     }
   }
 
-  const current = root['chat.tools.terminal.autoApprove'];
-  const autoApprove: Record<string, boolean> = isRecord(current)
-    ? Object.fromEntries(Object.entries(current).map(([k, v]) => [k, Boolean(v)]))
-    : {};
+  mergeBooleanRecord(root, 'chat.tools.terminal.autoApprove', SAFE_TERMINAL_AUTO_APPROVE);
 
-  for (const [pattern, value] of Object.entries(SAFE_TERMINAL_AUTO_APPROVE)) {
-    autoApprove[pattern] = value;
+  if (opts.includeCopilotCustomizations) {
+    mergeBooleanRecord(root, 'chat.agentFilesLocations', {
+      [COPILOT_AGENTIC_SDLC_AGENTS_DIR]: true,
+    });
+    mergeBooleanRecord(root, 'chat.promptFilesLocations', {
+      [COPILOT_AGENTIC_SDLC_PROMPTS_DIR]: true,
+    });
+    mergeBooleanRecord(root, 'chat.instructionsFilesLocations', {
+      [COPILOT_AGENTIC_SDLC_INSTRUCTIONS_DIR]: true,
+    });
   }
-
-  root['chat.tools.terminal.autoApprove'] = autoApprove;
 
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, JSON.stringify(root, null, 2) + '\n', 'utf8');

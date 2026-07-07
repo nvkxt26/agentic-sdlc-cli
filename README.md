@@ -1,4 +1,4 @@
-# agentic-workflow-cli
+# agentic-sdlc-cli
 
 ![Latest Release](https://img.shields.io/badge/release-v1.6.0-blue)
 
@@ -45,10 +45,10 @@ another's context.
 One command, three providers. Choose at install time:
 
 ```bash
-agentic-workflow init --provider copilot          # default
-agentic-workflow init --provider claude
-agentic-workflow init --provider opencode
-agentic-workflow init --provider copilot,claude   # scaffold several at once
+agentic-sdlc init --provider copilot          # default
+agentic-sdlc init --provider claude
+agentic-sdlc init --provider opencode
+agentic-sdlc init --provider copilot,claude   # scaffold several at once
 ```
 
 Each provider gets its own native layout, frontmatter, and model names:
@@ -56,10 +56,10 @@ Each provider gets its own native layout, frontmatter, and model names:
 | | GitHub Copilot | Claude Code | OpenCode |
 |---|---|---|---|
 | Always-on rules | `.github/copilot-instructions.md` | `CLAUDE.md` | `AGENTS.md` |
-| Agents | `.github/agents/*.agent.md` | `.claude/agents/*.md` | `.opencode/agent/*.md` |
-| Skills | `.github/skills/<name>/` | `.claude/skills/<name>/` | `.opencode/skills/<name>/` |
-| Instructions | `.github/instructions/*.instructions.md` | `.claude/instructions/*.instructions.md` | `.opencode/instructions/*.instructions.md` |
-| Prompts / commands | `.github/prompts/*.prompt.md` | `.claude/commands/*.md` | `.opencode/command/*.md` |
+| Agents | `.github/agentic-sdlc/agents/*.agent.md` | `.claude/agents/*.md` | `.opencode/agent/*.md` |
+| Skills | `.github/agentic-sdlc/skills/<name>/` | `.claude/skills/<name>/` | `.opencode/skills/<name>/` |
+| Instructions | `.github/agentic-sdlc/instructions/*.instructions.md` | `.claude/instructions/*.instructions.md` | `.opencode/instructions/*.instructions.md` |
+| Prompts / commands | `.github/agentic-sdlc/prompts/*.prompt.md` | `.claude/commands/*.md` | `.opencode/command/*.md` |
 | Model naming | `Claude Opus 4.8 (copilot)` | `opus` / `sonnet` / `haiku` | `anthropic/claude-opus-4-1` |
 
 The **template bodies are provider-neutral** — the CLI supplies each provider's
@@ -68,8 +68,11 @@ defaults you can change (see [Models per task](#models-per-task)); OpenCode ids 
 particular map to whatever provider you have configured (`anthropic/*`,
 `github-copilot/*`, `openai/*`, …).
 
-The provider set is saved in `.agentic-workflow.json` (`"providers"`), so future
+The provider set is saved in `.agentic-sdlc.json` (`"providers"`), so future
 `init`/`add` runs reuse it.
+
+If an older repo still has `.agentic-workflow.json`, the CLI will continue to
+read it for backward compatibility. New writes use `.agentic-sdlc.json`.
 
 ---
 
@@ -80,14 +83,22 @@ a project dependency), it **renders and copies** those templates into the locati
 your provider auto-discovers. All file names and `name` frontmatter fields match the
 directory conventions each agent requires — no extra editor settings needed.
 
+For **GitHub Copilot**, generated agents/prompts/instructions/skills are grouped under
+`.github/agentic-sdlc/`. The always-on file stays at `.github/copilot-instructions.md`.
+`init` also writes `.vscode/settings.json` so VS Code discovers those custom locations via
+`chat.agentFilesLocations`, `chat.promptFilesLocations`, and `chat.instructionsFilesLocations`.
+
 During interactive `init`, the CLI also asks whether it should create/update
 `.vscode/settings.json` with **safe terminal auto-approval rules** for common
 workflow setup/product-stage commands:
 - `mkdir -p docs/tickets/...`
-- `agentic-workflow run git-branch`
-- `agentic-workflow run jira|confluence|figma|context-sync|cache|repo-bridge|graphify`
+- `agentic-sdlc run git-branch`
+- `agentic-sdlc run jira|confluence|figma|context-sync|cache|repo-bridge|graphify`
 
 Use `--no-vscode-settings` to skip this.
+
+By default, `init` also adds `.github/agentic-sdlc/` and `.vscode/settings.json`
+to `.gitignore`. Use `--no-gitignore-sdlc` to opt out and commit those files.
 
 ### Global install (optional)
 
@@ -112,26 +123,27 @@ Files are scaffolded automatically on `npm install` via a `postinstall` hook
 (defaults to the Copilot provider; run `init` to add others):
 
 ```bash
-npm install --save-dev @nvkxt26/agentic-workflow-cli
+npm install --save-dev @nvkxt26/agentic-sdlc-cli
 ```
 
-> Skip auto-scaffolding: `npm install --save-dev --ignore-scripts @nvkxt26/agentic-workflow-cli`
-> then run `npx agentic-workflow init` manually.
+> Skip auto-scaffolding: `npm install --save-dev --ignore-scripts @nvkxt26/agentic-sdlc-cli`
+> then run `npx agentic-sdlc init` manually.
 
 ### Option B — Global CLI
 
 ```bash
-npm install -g @nvkxt26/agentic-workflow-cli
-agentic-workflow init                 # interactive (asks which provider[s])
-agentic-workflow init -y              # defaults (Copilot), no prompts
-agentic-workflow init --global        # also install to user-level locations
-agentic-workflow init --no-vscode-settings   # skip .vscode/settings.json auto-approve rules
+npm install -g @nvkxt26/agentic-sdlc-cli
+agentic-sdlc init                 # interactive (asks which provider[s])
+agentic-sdlc init -y              # defaults (Copilot), no prompts
+agentic-sdlc init --global        # also install to user-level locations
+agentic-sdlc init --no-vscode-settings   # skip .vscode/settings.json auto-approve rules
+agentic-sdlc init --no-gitignore-sdlc    # keep .github/agentic-sdlc + .vscode/settings.json tracked
 ```
 
 ### Option C — npx (no install)
 
 ```bash
-npx @nvkxt26/agentic-workflow-cli init
+npx @nvkxt26/agentic-sdlc-cli init
 ```
 
 ### Installing from GitHub Packages
@@ -149,10 +161,10 @@ The package is published to GitHub Packages under `@nvkxt26`. Add auth to `~/.np
 
 ```bash
 # 1. Install into your project (choose provider[s])
-npx agentic-workflow init --provider copilot
+npx agentic-sdlc init --provider copilot
 
 # 2. List installed agents + skills and their models (per provider)
-npx agentic-workflow list
+npx agentic-sdlc list
 ```
 
 In your agent: open chat, select the **SDLC Orchestrator** (or run
@@ -222,7 +234,7 @@ or a directory where you clone all your services). Mark it once:
 
 ```bash
 cd ~/work/my-workspace        # contains repoA/ repoB/ repoC/
-agentic-workflow workspace init
+agentic-sdlc workspace init
 ```
 
 This:
@@ -236,11 +248,11 @@ Then install per repo and publish each repo's context to the registry:
 
 ```bash
 # in each repo:
-agentic-workflow init
+agentic-sdlc init
 
 # from anywhere in the workspace, publish everyone's context:
-agentic-workflow workspace sync
-agentic-workflow workspace list      # who is installed / published
+agentic-sdlc workspace sync
+agentic-sdlc workspace list      # who is installed / published
 ```
 
 ### How repos communicate (cross-repo context)
@@ -251,17 +263,17 @@ the intelligence:
 
 ```bash
 # publish THIS repo's context (the context-builder does this automatically)
-agentic-workflow run repo-bridge -- publish
+agentic-sdlc run repo-bridge -- publish
 
 # read peers
-agentic-workflow run repo-bridge -- list
-agentic-workflow run repo-bridge -- read --repo billing --file modules.toon
+agentic-sdlc run repo-bridge -- list
+agentic-sdlc run repo-bridge -- read --repo billing --file modules.toon
 
 # agent-to-agent Q&A (file mailbox in the registry)
-agentic-workflow run repo-bridge -- ask --repo billing --question "do you own invoice PDFs?"
-agentic-workflow run repo-bridge -- inbox                 # billing's mimir reads this
-agentic-workflow run repo-bridge -- answer --id <id> --file answer.toon
-agentic-workflow run repo-bridge -- answers --id <id>     # asker collects the reply
+agentic-sdlc run repo-bridge -- ask --repo billing --question "do you own invoice PDFs?"
+agentic-sdlc run repo-bridge -- inbox                 # billing's mimir reads this
+agentic-sdlc run repo-bridge -- answer --id <id> --file answer.toon
+agentic-sdlc run repo-bridge -- answers --id <id>     # asker collects the reply
 ```
 
 Everything is plain files under `.agentic/registry/` — no server, fully deterministic.
@@ -303,7 +315,7 @@ Instructions are the simplest way to teach the workflow your project's conventio
 
 **Example — "use our custom component library instead of generic components":**
 
-Create `.github/instructions/ui-components.instructions.md` (Copilot; use
+Create `.github/agentic-sdlc/instructions/ui-components.instructions.md` (Copilot; use
 `.claude/instructions/` or `.opencode/instructions/` for the others):
 
 ```md
@@ -327,7 +339,7 @@ above just makes it specific to your codebase.
 
 ### Add an agent (a persona / mode)
 
-Create a file in your agents dir. **Copilot** (`.github/agents/db-migrations.agent.md`):
+Create a file in your agents dir. **Copilot** (`.github/agentic-sdlc/agents/db-migrations.agent.md`):
 
 ```md
 ---
@@ -349,7 +361,7 @@ a copy-paste template per provider.
 ### Add a skill (a deterministic tool or a task recipe)
 
 A skill is a folder with a `SKILL.md`; add a `scripts/*.mjs` for deterministic work.
-**`.github/skills/changelog/SKILL.md`:**
+**`.github/agentic-sdlc/skills/changelog/SKILL.md`:**
 
 ```md
 ---
@@ -358,13 +370,13 @@ description: Generate a changelog entry from the current branch's commits. Use w
 ---
 
 # changelog skill
-Run: `node .github/skills/changelog/scripts/changelog.mjs --since main`
+Run: `node .github/agentic-sdlc/skills/changelog/scripts/changelog.mjs --since main`
 Emits a TOON list of `{type, scope, message}` from Conventional Commits.
 ```
 
 Keep scripts **zero-dependency** and have them print **TOON** on stdout (copy the tiny
 encoder from any shipped skill) so they compose with the rest of the workflow. Run any
-skill with `agentic-workflow run <name> -- <args>`.
+skill with `agentic-sdlc run <name> -- <args>`.
 
 ### Where to add things (three levels)
 
@@ -393,7 +405,7 @@ or extend workspace and global ones.
 
 `.agentic/context/`, `.agentic/cache/` and `.agentic/registry/` are generated,
 regenerable state and are added to `.gitignore` automatically — never committed.
-Locations are configurable in `.agentic-workflow.json`.
+Locations are configurable in `.agentic-sdlc.json`.
 
 ---
 
@@ -418,9 +430,9 @@ rest of the install):
    ```
 3. If available, registers graphify's own skill + always-on instructions for each
    configured provider, and builds the initial (offline, code-only) graph.
-4. Records the outcome in `.agentic-workflow.json` (`"graphify": true|false`).
+4. Records the outcome in `.agentic-sdlc.json` (`"graphify": true|false`).
 
-Opt out entirely with `agentic-workflow init --no-graphify`.
+Opt out entirely with `agentic-sdlc init --no-graphify`.
 
 **How it's used:**
 - **context-builder** refreshes the graph (`graphify -- build --update`) alongside the
@@ -431,11 +443,11 @@ Opt out entirely with `agentic-workflow init --no-graphify`.
   falling back to the TOON context for everything else or when graphify is unavailable.
 - Call it directly any time:
   ```bash
-  agentic-workflow run graphify -- status
-  agentic-workflow run graphify -- build
-  agentic-workflow run graphify -- query "what connects auth to the database?"
-  agentic-workflow run graphify -- path "UserService" "DatabasePool"
-  agentic-workflow run graphify -- explain "RateLimiter"
+  agentic-sdlc run graphify -- status
+  agentic-sdlc run graphify -- build
+  agentic-sdlc run graphify -- query "what connects auth to the database?"
+  agentic-sdlc run graphify -- path "UserService" "DatabasePool"
+  agentic-sdlc run graphify -- explain "RateLimiter"
   ```
 
 `graphify-out/` is meant to be committed (a shared map for the whole team); only
@@ -467,10 +479,10 @@ concrete model:
 | `balanced` | GPT-5 mini | `sonnet` | `anthropic/claude-sonnet-4-5` |
 | `light` | GPT-5 mini | `haiku` | `anthropic/claude-3-5-haiku-latest` |
 
-Override the tier for any component (persisted to `.agentic-workflow.json`):
+Override the tier for any component (persisted to `.agentic-sdlc.json`):
 
 ```bash
-agentic-workflow add architect --model reasoning-high
+agentic-sdlc add architect --model reasoning-high
 ```
 
 To change the concrete **model names**, edit the model maps in the generated agent
@@ -487,7 +499,7 @@ agent answering that stage inline. This differs by provider:
 |---|---|---|
 | **OpenCode** | Host-enforced for both primary agents (switching to one in the TUI switches models) and subagents (the `task` tool always runs the target under its own `model:`). Strongest guarantee. | Nothing extra needed — `mode: primary\|subagent` + `model:` is sufficient. |
 | **Claude Code** | Honored **only** when the persona is invoked as a subagent via the `Task` tool. | `sdlc-orchestrator.agent.md` and `mimir.agent.md` explicitly instruct: delegate by name via the subagent tool, never answer a stage inline. |
-| **Copilot** (VS Code + CLI, same `.github/agents/*.agent.md` files) | Subagent model priority is *explicit param → the subagent's own `model:` → the invoking agent's model* — **but a subagent's requested model can never exceed the cost tier of the agent that invoked it**; a cheaper coordinator silently downgrades every subagent it calls. | 1) `model:` is emitted as an **array** (`model: ['Claude Opus 4.8 (copilot)', ...fallbacks]`) so VS Code tries each in order instead of silently falling back to the currently-picked model if the primary is unavailable to the user's plan. 2) The **SDLC Orchestrator** is pinned to `reasoning-max` (not the lighter tier its own sequencing work would need) specifically so it's never the cost ceiling for the personas it delegates to. 3) Subagent-only personas get `user-invocable: false` (hidden from the top-level agent picker — same intent as OpenCode's `mode: subagent`). 4) Coordinating agents (`sdlc-orchestrator`, `mimir`) get an `agents:` allowlist naming exactly which personas they may invoke, so Copilot can't pick an unintended similarly-named agent. |
+| **Copilot** (VS Code + CLI, same `.github/agentic-sdlc/agents/*.agent.md` files) | Subagent model priority is *explicit param → the subagent's own `model:` → the invoking agent's model* — **but a subagent's requested model can never exceed the cost tier of the agent that invoked it**; a cheaper coordinator silently downgrades every subagent it calls. | 1) `model:` is emitted as an **array** (`model: ['Claude Opus 4.8 (copilot)', ...fallbacks]`) so VS Code tries each in order instead of silently falling back to the currently-picked model if the primary is unavailable to the user's plan. 2) The **SDLC Orchestrator** is pinned to `reasoning-max` (not the lighter tier its own sequencing work would need) specifically so it's never the cost ceiling for the personas it delegates to. 3) Subagent-only personas get `user-invocable: false` (hidden from the top-level agent picker — same intent as OpenCode's `mode: subagent`). 4) Coordinating agents (`sdlc-orchestrator`, `mimir`) get an `agents:` allowlist naming exactly which personas they may invoke, so Copilot can't pick an unintended similarly-named agent. |
 
 Two residual caveats no configuration can close:
 - **Unavailable model, no error.** If none of the pinned models (primary + fallbacks) are enabled for the user's plan, hosts generally fall back silently rather than erroring.
@@ -523,8 +535,8 @@ Example `.agentic/logs/model-usage.log`:
 2026-07-05T23:53:02Z SubagentStop source=intended model=Claude Opus 4.8 (copilot) agent=architect session=s1 note="actual model: hover the subagent in chat for model+credits"
 ```
 
-Disable with `agentic-workflow init --no-model-logging` (persisted as
-`"modelLogging": false` in `.agentic-workflow.json`).
+Disable with `agentic-sdlc init --no-model-logging` (persisted as
+`"modelLogging": false` in `.agentic-sdlc.json`).
 
 ---
 
@@ -533,16 +545,16 @@ Disable with `agentic-workflow init --no-model-logging` (persisted as
 Integrations that should not be left to the model run as scripts and emit TOON:
 
 ```bash
-agentic-workflow run jira -- --issue FXDOMAIN-1234
-agentic-workflow run jira -- --epic FXDOMAIN-1000
-agentic-workflow run confluence -- --id 123456
-agentic-workflow run figma -- --url "https://www.figma.com/design/KEY/Name?node-id=12-34" --out docs/FXDOMAIN-1234/figma
-agentic-workflow run git-branch -- --type feat --ticket FXDOMAIN-1234 --desc "add retry"
-agentic-workflow run git-commit -- --ticket FXDOMAIN-1234 --message "add retry" --all
-agentic-workflow run context-sync -- --context-dir .agentic/context
-agentic-workflow run cache -- get --key jira:FXDOMAIN-1234 --raw
-agentic-workflow run repo-bridge -- list
-agentic-workflow run graphify -- query "what connects auth to the database?"
+agentic-sdlc run jira -- --issue FXDOMAIN-1234
+agentic-sdlc run jira -- --epic FXDOMAIN-1000
+agentic-sdlc run confluence -- --id 123456
+agentic-sdlc run figma -- --url "https://www.figma.com/design/KEY/Name?node-id=12-34" --out docs/FXDOMAIN-1234/figma
+agentic-sdlc run git-branch -- --type feat --ticket FXDOMAIN-1234 --desc "add retry"
+agentic-sdlc run git-commit -- --ticket FXDOMAIN-1234 --message "add retry" --all
+agentic-sdlc run context-sync -- --context-dir .agentic/context
+agentic-sdlc run cache -- get --key jira:FXDOMAIN-1234 --raw
+agentic-sdlc run repo-bridge -- list
+agentic-sdlc run graphify -- query "what connects auth to the database?"
 ```
 
 ---
@@ -575,7 +587,7 @@ values to a gitignored `.env` / your shell profile:
 
 | Command | Description |
 |---|---|
-| `init [-y] [--provider <ids>] [--global] [--no-graphify] [--no-model-logging] [--no-vscode-settings]` | Scaffold into the project for the chosen provider(s) |
+| `init [-y] [--provider <ids>] [--global] [--no-graphify] [--no-model-logging] [--no-vscode-settings] [--no-gitignore-sdlc]` | Scaffold into the project for the chosen provider(s) |
 | `list` / `ls` | List agents and skills with their resolved models per provider |
 | `add <skill\|agent> [--model <tier>] [--provider <ids>]` | Add one component |
 | `run <skill> -- <args>` | Run a deterministic skill script (emits TOON) |
@@ -593,7 +605,7 @@ values to a gitignored `.env` / your shell profile:
 
 ```bash
 git clone <this-repo>
-cd agentic-workflow-cli
+cd agentic-sdlc-cli
 npm install
 npm run build      # tsc → dist/
 npm test            # vitest unit tests
@@ -634,27 +646,27 @@ npm run build
 rm -rf /tmp/agentic-test && mkdir -p /tmp/agentic-test && cd /tmp/agentic-test && git init -q
 
 # 3a. run against a single provider, non-interactively
-node /path/to/agentic-workflow-cli/dist/index.js init -y -p opencode
+node /path/to/agentic-sdlc-cli/dist/index.js init -y -p opencode
 
 # 3b. or run the full interactive prompt flow (docs dir, review loops, output
 #     mode, provider checkbox, credentials) exactly as a real user would see it
-node /path/to/agentic-workflow-cli/dist/index.js init
+node /path/to/agentic-sdlc-cli/dist/index.js init
 
 # 4. inspect what was written
 ls -R .opencode .github .claude 2>/dev/null
-cat .agentic-workflow.json
+cat .agentic-sdlc.json
 cat .gitignore
 ```
 
-Alternatively, `npm link` puts the CLI on `PATH` as `agentic-workflow` so you can test
+Alternatively, `npm link` puts the CLI on `PATH` as `agentic-sdlc` so you can test
 it exactly the way an end user (or the npm `postinstall` hook) would invoke it:
 
 ```bash
-cd /path/to/agentic-workflow-cli && npm run build && npm link
-cd /tmp/agentic-test && npm link @nvkxt26/agentic-workflow-cli   # or just: agentic-workflow init
-agentic-workflow list
-agentic-workflow add mimir --provider claude
-agentic-workflow run context-sync -- --context-dir .agentic/context
+cd /path/to/agentic-sdlc-cli && npm run build && npm link
+cd /tmp/agentic-test && npm link @nvkxt26/agentic-sdlc-cli   # or just: agentic-sdlc init
+agentic-sdlc list
+agentic-sdlc add mimir --provider claude
+agentic-sdlc run context-sync -- --context-dir .agentic/context
 ```
 
 Things worth exercising after any change to `src/` or `templates/`:
@@ -684,12 +696,12 @@ paths:
 
 ```bash
 which graphify || echo "not installed, good — this is the path most users hit"
-cd /tmp/agentic-test && node /path/to/agentic-workflow-cli/dist/index.js init -y -p opencode
+cd /tmp/agentic-test && node /path/to/agentic-sdlc-cli/dist/index.js init -y -p opencode
 # expect: "graphify not installed ... Install later: uv tool install graphifyy && graphify install"
-# and .agentic-workflow.json should contain "graphify": false
+# and .agentic-sdlc.json should contain "graphify": false
 
-node /path/to/agentic-workflow-cli/dist/index.js run graphify -- status
-node /path/to/agentic-workflow-cli/dist/index.js run graphify -- query "anything"
+node /path/to/agentic-sdlc-cli/dist/index.js run graphify -- status
+node /path/to/agentic-sdlc-cli/dist/index.js run graphify -- query "anything"
 # both must print a TOON `error`/`available: false` block and exit non-zero —
 # never a stack trace, never a zero exit code
 ```
@@ -701,14 +713,14 @@ uv tool install graphifyy    # or: pipx install graphifyy / pip install --user g
 graphify --version
 
 cd /tmp/agentic-test
-node /path/to/agentic-workflow-cli/dist/index.js init -y -p opencode
-cat .agentic-workflow.json    # expect "graphify": true
+node /path/to/agentic-sdlc-cli/dist/index.js init -y -p opencode
+cat .agentic-sdlc.json    # expect "graphify": true
 ls graphify-out/              # expect graph.json (+ GRAPH_REPORT.md unless --no-viz suppressed it)
 
-node /path/to/agentic-workflow-cli/dist/index.js run graphify -- status
-node /path/to/agentic-workflow-cli/dist/index.js run graphify -- build --update
-node /path/to/agentic-workflow-cli/dist/index.js run graphify -- query "what connects the CLI entrypoint to the installer?"
-node /path/to/agentic-workflow-cli/dist/index.js run graphify -- explain "install"
+node /path/to/agentic-sdlc-cli/dist/index.js run graphify -- status
+node /path/to/agentic-sdlc-cli/dist/index.js run graphify -- build --update
+node /path/to/agentic-sdlc-cli/dist/index.js run graphify -- query "what connects the CLI entrypoint to the installer?"
+node /path/to/agentic-sdlc-cli/dist/index.js run graphify -- explain "install"
 ```
 
 **3. Interactive install prompt** — run `init` (no `-y`) with graphify CLI *not*
@@ -722,7 +734,7 @@ Clean up afterwards:
 
 ```bash
 rm -rf /tmp/agentic-test
-npm unlink -g @nvkxt26/agentic-workflow-cli   # if you used npm link
+npm unlink -g @nvkxt26/agentic-sdlc-cli   # if you used npm link
 uv tool uninstall graphifyy                    # if you installed it just for testing
 ```
 

@@ -11,11 +11,16 @@ docs/
 .github/agents/
 .github/instructions/
 .github/skills/
+.github/agentic-sdlc/prompts/
+.github/agentic-sdlc/agents/
+.github/agentic-sdlc/instructions/
+.github/agentic-sdlc/skills/
 .github/hooks/
 .agentic-workflow.json
+.agentic-sdlc.json
 .agents/
 
-# agentic-workflow (generated context + cache + registry)
+# agentic-sdlc (generated context + cache + registry)
 .agentic/context/
 .agentic/cache/
 .agentic/registry/

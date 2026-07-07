@@ -14,7 +14,10 @@ export function templatesDir(): string {
 }
 
 /** Config file name written into the target project root. */
-export const CONFIG_FILE = '.agentic-workflow.json';
+export const CONFIG_FILE = '.agentic-sdlc.json';
+
+/** Legacy config filename kept readable for backward compatibility. */
+export const LEGACY_CONFIG_FILE = '.agentic-workflow.json';
 
 /** Workspace config file written at the root folder that groups several repos. */
 export const WORKSPACE_FILE = '.agentic-workspace.json';

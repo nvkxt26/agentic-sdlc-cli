@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * agentic-workflow — Claude Code model-usage logger hook.
+ * agentic-sdlc — Claude Code model-usage logger hook.
  *
  * Registered in `.claude/settings.json` for the `Stop` (main agent finished)
  * and `SubagentStop` (a persona subagent finished) events. Claude Code passes a
