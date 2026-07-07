@@ -167,6 +167,7 @@ In your agent: open chat, select the **SDLC Orchestrator** (or run
 0b. context → refresh .agentic/context/ from default-branch diff (context-builder + context-sync)
 1. product  → requirements.toon   (Jira + Figma; asks questions, never assumes)
 2. architect→ plan.toon           (plans against context; reuses existing components; reuses cache)
+2b. approve → user approves `plan.toon` before any source edits
 3. develop  → dev-report.toon     (comments by default; build verified in code mode)
 4. qa       → qa-report.toon      (unit + integration tests)
 5. review   → review-log.toon     (loop up to 5×)
