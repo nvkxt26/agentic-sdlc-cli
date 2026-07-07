@@ -37,6 +37,10 @@ program
     '--no-model-logging',
     'skip installing the per-provider model-usage logger (.agentic/logs/model-usage.log)',
   )
+  .option(
+    '--no-vscode-settings',
+    'skip creating/updating .vscode/settings.json auto-approve rules for setup/requirements skills',
+  )
   .action((opts) => initCommand(opts));
 
 program

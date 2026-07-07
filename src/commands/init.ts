@@ -12,6 +12,7 @@ import {
   ensureGraphifyGitignore,
   GRAPHIFY_INSTALL_HINT,
 } from '../graphify.js';
+import { upsertVscodeSettings } from '../vscodeSettings.js';
 import type { AgenticConfig, ProviderId } from '../types.js';
 
 interface InitFlags {
@@ -22,6 +23,7 @@ interface InitFlags {
   provider?: string;
   graphify?: boolean;
   modelLogging?: boolean;
+  vscodeSettings?: boolean;
 }
 
 /** Interactive (or flag-driven) installer. */
@@ -95,6 +97,15 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     config.docsDir = flags.docsDir;
   }
 
+  let installVscodeSettings = flags.vscodeSettings !== false;
+  if (!flags.yes && flags.vscodeSettings !== false) {
+    installVscodeSettings = await confirm({
+      message:
+        'Create/update .vscode/settings.json with safe terminal auto-approve rules for workflow setup (docs/tickets mkdir + requirements/branch skills)?',
+      default: true,
+    });
+  }
+
   const written: string[] = [];
 
   // Install all templates for the selected provider(s).
@@ -104,6 +115,12 @@ export async function initCommand(flags: InitFlags): Promise<void> {
   // Persist config.
   await writeConfig(cwd, config);
   written.push(join(cwd, '.agentic-workflow.json'));
+
+  // Optional workspace settings for VS Code terminal auto-approval.
+  if (installVscodeSettings) {
+    const settingsPath = await upsertVscodeSettings(cwd);
+    written.push(settingsPath);
+  }
 
   // Global env var setup for deterministic skills (Jira/Confluence/Figma).
   if (!flags.yes) {
