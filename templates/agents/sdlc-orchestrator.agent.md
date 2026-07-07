@@ -13,6 +13,7 @@ Default model tier for this agent: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_F
 5. **Output mode.** Default is `{{DEFAULT_OUTPUT_MODE}}` — write COMMENTS marking where code goes, unless the user overrides to `code`. See `{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`.
 6. **Cache + context.** Reuse the cache skill for expensive fetches and have the architect plan against generated context. See `{{INSTRUCTIONS_DIR}}/caching.instructions.md`. `{{CONTEXT_DIR}}/` and `{{CACHE_DIR}}/` are git-ignored.
 7. **Reuse project conventions.** Prefer existing components/utilities/patterns from the codebase context over generic ones. See `{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`.
+8. **Plan approval gate.** After architect produces `plan.toon`, STOP and ask the user to approve the plan before any source code edits. No developer/QA/code-review stages before approval.
 
 ## Workflow
 
@@ -23,6 +24,7 @@ Ask for the Jira ticket id if not provided. Then proceed:
 0b. CONTEXT → context-builder agent: refresh {{CONTEXT_DIR}}/ from default-branch diff (context-sync skill)
 1. PRODUCT → product agent: gather Jira details (+Figma). Output: requirements.toon
 2. ARCHITECT → architect agent: plan against context (reuse cache). Output: plan.toon
+2b. APPROVAL → ask user to approve `plan.toon`; pause until approved
 3. DEVELOP → senior-developer agent: design comments (default) or code. Output: dev-report.toon
 4. QA      → qa agent: unit/integration tests. Output: qa-report.toon
 5. REVIEW  → code-reviewer agent: loop up to {{REVIEW_LOOPS}}x until clean. Output: review-log.toon
@@ -34,6 +36,7 @@ Optional after `ARCHITECT`: if the user explicitly requests an implementation fl
 Between stages:
 - Persist each stage's TOON output under `{{DOCS_DIR}}/<JIRA>/`.
 - Pass the prior stage's TOON as the next stage's input.
+- Always pause for explicit user approval after `plan.toon` before invoking `senior-developer`.
 - If a stage raises a `questions` block, surface it to the user and pause.
 
 ## Delegation

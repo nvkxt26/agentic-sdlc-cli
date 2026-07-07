@@ -20,3 +20,5 @@ docs/
 .agentic/cache/
 .agentic/registry/
 .agentic/logs/
+
+.vscode/settings.json

@@ -80,6 +80,15 @@ a project dependency), it **renders and copies** those templates into the locati
 your provider auto-discovers. All file names and `name` frontmatter fields match the
 directory conventions each agent requires — no extra editor settings needed.
 
+During interactive `init`, the CLI also asks whether it should create/update
+`.vscode/settings.json` with **safe terminal auto-approval rules** for common
+workflow setup/product-stage commands:
+- `mkdir -p docs/tickets/...`
+- `agentic-workflow run git-branch`
+- `agentic-workflow run jira|confluence|figma|context-sync|cache|repo-bridge|graphify`
+
+Use `--no-vscode-settings` to skip this.
+
 ### Global install (optional)
 
 Pass `--global` to also install into each configured provider's **user-level**
@@ -116,6 +125,7 @@ npm install -g @nvkxt26/agentic-workflow-cli
 agentic-workflow init                 # interactive (asks which provider[s])
 agentic-workflow init -y              # defaults (Copilot), no prompts
 agentic-workflow init --global        # also install to user-level locations
+agentic-workflow init --no-vscode-settings   # skip .vscode/settings.json auto-approve rules
 ```
 
 ### Option C — npx (no install)
@@ -157,6 +167,7 @@ In your agent: open chat, select the **SDLC Orchestrator** (or run
 0b. context → refresh .agentic/context/ from default-branch diff (context-builder + context-sync)
 1. product  → requirements.toon   (Jira + Figma; asks questions, never assumes)
 2. architect→ plan.toon           (plans against context; reuses existing components; reuses cache)
+2b. approve → user approves `plan.toon` before any source edits
 3. develop  → dev-report.toon     (comments by default; build verified in code mode)
 4. qa       → qa-report.toon      (unit + integration tests)
 5. review   → review-log.toon     (loop up to 5×)
@@ -564,7 +575,7 @@ values to a gitignored `.env` / your shell profile:
 
 | Command | Description |
 |---|---|
-| `init [-y] [--provider <ids>] [--global] [--no-graphify] [--no-model-logging]` | Scaffold into the project for the chosen provider(s) |
+| `init [-y] [--provider <ids>] [--global] [--no-graphify] [--no-model-logging] [--no-vscode-settings]` | Scaffold into the project for the chosen provider(s) |
 | `list` / `ls` | List agents and skills with their resolved models per provider |
 | `add <skill\|agent> [--model <tier>] [--provider <ids>]` | Add one component |
 | `run <skill> -- <args>` | Run a deterministic skill script (emits TOON) |
@@ -585,6 +596,7 @@ git clone <this-repo>
 cd agentic-workflow-cli
 npm install
 npm run build      # tsc → dist/
+npm test            # vitest unit tests
 npm run dev -- list   # run straight from src/ via tsx, no build needed
 ```
 
@@ -593,8 +605,21 @@ use it while iterating so you don't have to rebuild after every change. Use
 `npm run build && npm run start -- <args>` (or `node dist/index.js <args>`) to test
 the compiled output that actually ships (what `npm run prepublishOnly` produces).
 
-There is no automated test suite yet — verify changes by exercising the CLI end to
-end against a disposable scratch repo, as described below.
+Unit tests run with **Vitest** (`npm test`). For behavior-level verification,
+still exercise the CLI end to end against a disposable scratch repo as described below.
+
+### PR build/test gate (Node 22)
+
+This repo includes a PR workflow at `.github/workflows/ci.yml` that runs on
+pull requests targeting `main` and executes:
+
+1. `npm ci`
+2. `npm run build`
+3. `npm test`
+
+The release workflow remains on `main` and assumes only validated PRs are merged.
+To enforce "merge only after build/tests pass", set branch protection (or a
+ruleset) in GitHub to require the `build-and-test` check before merging.
 
 ### Testing the CLI locally end to end
 
