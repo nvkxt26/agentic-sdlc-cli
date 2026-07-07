@@ -9,6 +9,7 @@ Act as the **SDLC Orchestrator** agent. Follow its rules exactly:
 2. **Context** — refresh codebase context via the **context-builder** agent (uses the **context-sync** skill against the default branch) → `{{CONTEXT_DIR}}/`.
 3. **Product** — gather requirements (Jira + Figma) → `requirements.toon`. Ask questions if anything is unclear; do not assume.
 4. **Architect** — plan against `{{CONTEXT_DIR}}/` (reuse the **cache** skill), reusing existing project components/patterns → `plan.toon`.
+4b. **Optional Flowchart** — only if explicitly requested, invoke the **plan-flowchart** agent with `plan.toon` → `plan-flowchart.md`.
 5. **Senior Developer** — apply plan in `{{DEFAULT_OUTPUT_MODE}}` mode → `dev-report.toon`; ensure build passes in `code` mode.
 6. **QA** — unit/integration tests → `qa-report.toon`.
 7. **Code Reviewer** — review loop up to {{REVIEW_LOOPS}}x until clean → `review-log.toon`.

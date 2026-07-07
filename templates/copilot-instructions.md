@@ -12,6 +12,7 @@ Installed in `{{AGENTS_DIR}}/`. Pick the appropriate persona, or use the SDLC Or
 | Context Builder | Maintains codebase context on the default branch (incremental, diff-based) |
 | Product Owner | Gathers requirements from Jira, Confluence, and Figma |
 | Architect | Turns requirements into a concrete implementation plan |
+| Plan Flowchart | Optionally turns plan.toon into a Mermaid implementation flowchart for human review |
 | Senior Developer | Applies the plan (inline comments or real code) |
 | QA | Adds and updates unit and integration tests |
 | Code Reviewer | Review loop (up to {{REVIEW_LOOPS}}×) until the change is clean |
