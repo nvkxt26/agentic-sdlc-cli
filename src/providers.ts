@@ -120,13 +120,19 @@ function yamlString(value: string): string {
 
 // ---- provider specs ---------------------------------------------------------
 
+export const COPILOT_AGENTIC_SDLC_BASE_DIR = '.github/agentic-sdlc';
+export const COPILOT_AGENTIC_SDLC_AGENTS_DIR = `${COPILOT_AGENTIC_SDLC_BASE_DIR}/agents`;
+export const COPILOT_AGENTIC_SDLC_SKILLS_DIR = `${COPILOT_AGENTIC_SDLC_BASE_DIR}/skills`;
+export const COPILOT_AGENTIC_SDLC_INSTRUCTIONS_DIR = `${COPILOT_AGENTIC_SDLC_BASE_DIR}/instructions`;
+export const COPILOT_AGENTIC_SDLC_PROMPTS_DIR = `${COPILOT_AGENTIC_SDLC_BASE_DIR}/prompts`;
+
 const copilot: ProviderSpec = {
   id: 'copilot',
   label: 'GitHub Copilot (VS Code)',
-  agentsDir: '.github/agents',
-  skillsDir: '.github/skills',
-  instructionsDir: '.github/instructions',
-  promptsDir: '.github/prompts',
+  agentsDir: COPILOT_AGENTIC_SDLC_AGENTS_DIR,
+  skillsDir: COPILOT_AGENTIC_SDLC_SKILLS_DIR,
+  instructionsDir: COPILOT_AGENTIC_SDLC_INSTRUCTIONS_DIR,
+  promptsDir: COPILOT_AGENTIC_SDLC_PROMPTS_DIR,
   alwaysOnFile: '.github/copilot-instructions.md',
   models: MODEL_TIERS,
   agentFile: (id) => `${id}.agent.md`,

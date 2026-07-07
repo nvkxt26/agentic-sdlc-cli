@@ -10,7 +10,7 @@ import { workspaceInit, workspaceList, workspaceSync } from './commands/workspac
 const program = new Command();
 
 program
-  .name('agentic-workflow')
+  .name('agentic-sdlc')
   .description(
     'Installable agentic SDLC workflow CLI — scaffolds agents, deterministic skills,\n' +
       'and an orchestrator for GitHub Copilot, Claude Code, or OpenCode. Agents\n' +
@@ -40,6 +40,10 @@ program
   .option(
     '--no-vscode-settings',
     'skip creating/updating .vscode/settings.json auto-approve rules for setup/requirements skills',
+  )
+  .option(
+    '--no-gitignore-sdlc',
+    'do not add .github/agentic-sdlc or .vscode/settings.json entries to .gitignore',
   )
   .action((opts) => initCommand(opts));
 

@@ -59,7 +59,7 @@ export const CLAUDE_MODEL_TIERS: Record<ModelTier, ModelChoice> = {
 /**
  * OpenCode model ids per tier, in `provider/model` form. Defaults target the
  * `anthropic` provider; adjust to your configured provider (e.g.
- * `github-copilot/*`, `openai/*`) in `.agentic-workflow.json` or the agent file.
+ * `github-copilot/*`, `openai/*`) in `.agentic-sdlc.json` or the agent file.
  */
 export const OPENCODE_MODEL_TIERS: Record<ModelTier, ModelChoice> = {
   'reasoning-max': {

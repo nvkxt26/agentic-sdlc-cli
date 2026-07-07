@@ -1,5 +1,5 @@
 /**
- * Shared types for the agentic-workflow CLI.
+ * Shared types for the agentic-sdlc CLI.
  */
 
 /** Logical reasoning tiers. Each maps to a concrete default model + fallbacks. */
@@ -144,6 +144,12 @@ export interface AgenticConfig {
   envVars: string[];
   /** Per-agent / per-skill model tier overrides. */
   modelOverrides: Record<string, ModelTier>;
+  /**
+   * Whether `init` should git-ignore generated Copilot workspace customizations
+   * under `.github/agentic-sdlc/` plus `.vscode/settings.json`. Default `true`;
+   * disable with `init --no-gitignore-sdlc`.
+   */
+  gitignoreSdlc?: boolean;
   /**
    * Whether `init` installs the per-provider model-usage logger (records which
    * model each agent runs on to `.agentic/logs/model-usage.log`). OpenCode and

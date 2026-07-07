@@ -1,5 +1,5 @@
 /**
- * agentic-workflow — OpenCode model-usage logger plugin.
+ * agentic-sdlc — OpenCode model-usage logger plugin.
  *
  * Logs the ACTUAL provider/model selected at runtime for every assistant turn
  * (i.e. each agent invocation), at both the start and end of the turn, to

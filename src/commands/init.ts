@@ -24,6 +24,7 @@ interface InitFlags {
   graphify?: boolean;
   modelLogging?: boolean;
   vscodeSettings?: boolean;
+  gitignoreSdlc?: boolean;
 }
 
 /** Interactive (or flag-driven) installer. */
@@ -33,7 +34,7 @@ export async function initCommand(flags: InitFlags): Promise<void> {
   const existing = await readConfig(cwd);
   if (existing && !flags.yes) {
     const overwrite = await confirm({
-      message: 'An agentic-workflow config already exists. Reinstall / overwrite templates?',
+      message: 'An agentic-sdlc config already exists. Reinstall / overwrite templates?',
       default: false,
     });
     if (!overwrite) {
@@ -45,7 +46,8 @@ export async function initCommand(flags: InitFlags): Promise<void> {
   const config: AgenticConfig = existing ?? defaultConfig();
 
   // Model-usage logging is on by default; `--no-model-logging` disables it.
-  config.modelLogging = flags.modelLogging !== false;
+  config.modelLogging = flags.modelLogging ?? config.modelLogging ?? true;
+  config.gitignoreSdlc = flags.gitignoreSdlc ?? config.gitignoreSdlc ?? true;
 
   // Provider selection ---------------------------------------------------------
   if (flags.provider) {
@@ -106,6 +108,14 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     });
   }
 
+  if (!flags.yes && flags.gitignoreSdlc !== false) {
+    config.gitignoreSdlc = await confirm({
+      message:
+        'Git-ignore generated .github/agentic-sdlc files and .vscode/settings.json by default?',
+      default: config.gitignoreSdlc !== false,
+    });
+  }
+
   const written: string[] = [];
 
   // Install all templates for the selected provider(s).
@@ -114,11 +124,13 @@ export async function initCommand(flags: InitFlags): Promise<void> {
 
   // Persist config.
   await writeConfig(cwd, config);
-  written.push(join(cwd, '.agentic-workflow.json'));
+  written.push(join(cwd, '.agentic-sdlc.json'));
 
   // Optional workspace settings for VS Code terminal auto-approval.
   if (installVscodeSettings) {
-    const settingsPath = await upsertVscodeSettings(cwd);
+    const settingsPath = await upsertVscodeSettings(cwd, {
+      includeCopilotCustomizations: config.providers.includes('copilot'),
+    });
     written.push(settingsPath);
   }
 
@@ -274,13 +286,13 @@ export async function initCommand(flags: InitFlags): Promise<void> {
   console.log(
     pc.dim(
       '\nNext: open your agent, pick the "SDLC Orchestrator" (or run /resolve-ticket), ' +
-        'and provide a Jira ticket. For a group of repos, run `agentic-workflow workspace init`.',
+        'and provide a Jira ticket. For a group of repos, run `agentic-sdlc workspace init`.',
     ),
   );
 
   if (graphifyStatus === 'ready') {
     console.log(pc.green('\n✓ graphify knowledge-graph layer wired in.'));
-    console.log(pc.dim('  Try: agentic-workflow run graphify -- query "what connects auth to the database?"'));
+    console.log(pc.dim('  Try: agentic-sdlc run graphify -- query "what connects auth to the database?"'));
   } else if (graphifyStatus === 'unavailable' || graphifyStatus === 'declined') {
     console.log(
       pc.dim(

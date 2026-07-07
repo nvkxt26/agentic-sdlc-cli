@@ -46,20 +46,20 @@ async function main(): Promise<void> {
 
     const written = [...result.written];
     // Preserve an existing config (keeps user docsDir / model overrides).
-    if (!existsSync(join(target, '.agentic-workflow.json'))) {
+    if (!existsSync(join(target, '.agentic-sdlc.json'))) {
       await writeConfig(target, config);
-      written.push(join(target, '.agentic-workflow.json'));
+      written.push(join(target, '.agentic-sdlc.json'));
     }
     await writeEnvExample(target, config.envVars, written);
 
     console.log(
-      `\n[agentic-workflow] added ${written.length} Copilot files to .github/ ` +
+      `\n[agentic-sdlc] added ${written.length} Copilot files to .github/ ` +
         `(agents, skills, instructions, prompts).\n` +
-        `[agentic-workflow] run \`npx agentic-workflow init\` to configure docs dir / credentials.\n`,
+        `[agentic-sdlc] run \`npx agentic-sdlc init\` to configure docs dir / credentials.\n`,
     );
   } catch (err) {
     console.warn(
-      `[agentic-workflow] postinstall skipped: ${err instanceof Error ? err.message : String(err)}`,
+      `[agentic-sdlc] postinstall skipped: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 }
