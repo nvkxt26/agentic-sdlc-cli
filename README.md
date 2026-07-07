@@ -1,6 +1,6 @@
 # agentic-workflow-cli
 
-![Latest Release](https://img.shields.io/badge/release-v1.5.0-blue)
+![Latest Release](https://img.shields.io/badge/release-v1.6.0-blue)
 
 An installable **agentic SDLC workflow CLI**. It scaffolds a set of AI-agent
 customizations — an orchestrator, persona agents, deterministic skills, and
