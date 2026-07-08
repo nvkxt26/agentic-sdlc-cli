@@ -5,8 +5,8 @@ Resolve a Jira ticket end-to-end using the SDLC persona workflow. Provide the **
 ## What to do
 Act as the **SDLC Orchestrator** agent. Follow its rules exactly:
 
-1. **Setup** — create `{{DOCS_DIR}}/<ticket>/` and a branch via the **git-branch** skill (`<type>/<ticket>_<2-3 word desc>`).
-2. **Context** — refresh codebase context via the **context-builder** agent (uses the **context-sync** skill against the default branch) → `{{CONTEXT_DIR}}/`.
+1. **Setup** — create `{{DOCS_DIR}}/<ticket>/`, then **confirm the base branch** before branching: detect the repo default (`origin/HEAD` → main/develop/master) and the current branch; ask the user whether the work should be based on that branch (do not assume — a hotfix may target a `release/*` branch). Create the branch from the confirmed base via the **git-branch** skill with `--base <name|default> --pull` (`<type>/<ticket>_<2-3 word desc>`).
+2. **Context** — refresh codebase context via the **context-builder** agent (uses the **context-sync** skill with `--base <the confirmed base>`) → `{{CONTEXT_DIR}}/`. If context-sync reports `rebuildReason: base-branch-changed` or `context-not-ancestor-of-base` (cached context is ahead of / diverged from the base), do a full rebuild against the base before planning.
 3. **Product** — gather requirements (Jira + Figma) → `requirements.toon`. Ask questions if anything is unclear; do not assume.
 4. **Architect** — plan against `{{CONTEXT_DIR}}/` (reuse the **cache** skill), reusing existing project components/patterns → `plan.toon`.
 4b. **Approval Gate** — STOP and ask the user to approve `plan.toon`. Do not edit source files before approval.

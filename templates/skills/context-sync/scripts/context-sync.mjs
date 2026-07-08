@@ -11,8 +11,8 @@
  *                     (call this AFTER the context docs have been updated).
  *
  * Usage:
- *   node context-sync.mjs [--context-dir .agentic/context] [--branch main]
- *   node context-sync.mjs --mark [--context-dir .agentic/context] [--branch main]
+ *   node context-sync.mjs [--context-dir .agentic/context] [--branch main] [--base default|<ref>]
+ *   node context-sync.mjs --mark [--context-dir .agentic/context] [--base default|<ref>]
  *
  * Pure git + fs, zero dependencies.
  */
@@ -72,8 +72,8 @@ try {
 
 // ---- default branch detection ----------------------------------------------
 function detectDefaultBranch() {
-  const override = getArg('branch');
-  if (override) return override;
+  const override = getArg('branch') || getArg('base');
+  if (override && override !== 'default') return override;
   // Prefer the remote's advertised default.
   try {
     const ref = git(['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']);
@@ -88,6 +88,13 @@ function detectDefaultBranch() {
 }
 
 const branch = detectDefaultBranch();
+
+function isAncestor(ancestor, descendant) {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', ancestor, descendant], { stdio: 'ignore' });
+    return true;
+  } catch { return false; }
+}
 
 let headCommit;
 try {
@@ -121,15 +128,25 @@ if (hasFlag('mark')) {
 
 // ---- plan mode --------------------------------------------------------------
 let lastCommit = null;
+let metaBranch = null;
 if (existsSync(metaPath)) {
   try {
     const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
     lastCommit = typeof meta.lastCommit === 'string' ? meta.lastCommit : null;
+    metaBranch = typeof meta.branch === 'string' ? meta.branch : null;
   } catch { /* corrupt marker → treat as first run */ }
 }
 
 let mode;
 let changes;
+let rebuildReason = null;
+
+function fullRebuild(reason) {
+  mode = 'full';
+  if (reason) rebuildReason = reason;
+  const files = git(['ls-files']).split('\n').map((f) => f.trim()).filter(Boolean);
+  changes = files.map((file) => ({ status: 'F', file }));
+}
 
 function parseNameStatus(raw) {
   return raw
@@ -145,9 +162,11 @@ function parseNameStatus(raw) {
 }
 
 if (!lastCommit) {
-  mode = 'full';
-  const files = git(['ls-files']).split('\n').map((f) => f.trim()).filter(Boolean);
-  changes = files.map((file) => ({ status: 'F', file }));
+  fullRebuild();
+} else if (metaBranch && metaBranch !== branch) {
+  fullRebuild('base-branch-changed');
+} else if (lastCommit !== headCommit && !isAncestor(lastCommit, headCommit)) {
+  fullRebuild('context-not-ancestor-of-base');
 } else if (lastCommit === headCommit) {
   mode = 'noop';
   changes = [];
@@ -158,20 +177,14 @@ if (!lastCommit) {
     raw = git(['diff', '--name-status', `${lastCommit}..${headCommit}`]);
   } catch {
     // lastCommit unknown to this clone (e.g. force-push/shallow) → rebuild.
-    mode = 'full';
-    const files = git(['ls-files']).split('\n').map((f) => f.trim()).filter(Boolean);
-    changes = files.map((file) => ({ status: 'F', file }));
+    fullRebuild('last-commit-unreachable');
   }
   if (mode === 'incremental') changes = parseNameStatus(raw);
 }
 
 const missingDocs = missingContextDocs();
-let rebuildReason = null;
 if (missingDocs.length && mode !== 'full') {
-  mode = 'full';
-  rebuildReason = 'context-docs-missing';
-  const files = git(['ls-files']).split('\n').map((f) => f.trim()).filter(Boolean);
-  changes = files.map((file) => ({ status: 'F', file }));
+  fullRebuild('context-docs-missing');
 }
 
 const summary = {
@@ -182,9 +195,10 @@ const summary = {
   contextDir,
   changeCount: changes.length,
 };
+if (metaBranch && metaBranch !== branch) summary.previousBranch = metaBranch;
 if (rebuildReason) {
   summary.rebuildReason = rebuildReason;
-  summary.missingDocs = missingDocs;
+  if (rebuildReason === 'context-docs-missing') summary.missingDocs = missingDocs;
 }
 
 console.log(toon({ contextSync: summary, changes }));

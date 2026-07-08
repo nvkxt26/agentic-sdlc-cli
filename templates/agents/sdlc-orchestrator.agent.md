@@ -20,8 +20,8 @@ Default model tier for this agent: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_F
 Ask for the Jira ticket id if not provided. Then proceed:
 
 ```
-0. SETUP   → create {{DOCS_DIR}}/<JIRA>/, create branch via the git-branch skill
-0b. CONTEXT → context-builder agent: refresh {{CONTEXT_DIR}}/ from default-branch diff (context-sync skill)
+0. SETUP   → create {{DOCS_DIR}}/<JIRA>/, confirm base branch, create branch via the git-branch skill (from base)
+0b. CONTEXT → context-builder agent: refresh {{CONTEXT_DIR}}/ from base-branch diff (context-sync skill, tied to base)
 1. PRODUCT → product agent: gather Jira details (+Figma). Output: requirements.toon
 2. ARCHITECT → architect agent: plan against context (reuse cache). Output: plan.toon
 2b. APPROVAL → ask user to approve `plan.toon`; pause until approved
@@ -30,6 +30,15 @@ Ask for the Jira ticket id if not provided. Then proceed:
 5. REVIEW  → code-reviewer agent: loop up to {{REVIEW_LOOPS}}x until clean. Output: review-log.toon
 6. WRAP    → commit via git-commit skill, summarize for the user (normal prose)
 ```
+
+### SETUP — base-branch selection (mandatory, never assume)
+
+Before creating the ticket branch you MUST establish the correct **base branch** to evaluate the work against. Do not assume the current branch is the base.
+
+1. **Detect** the repo default (`origin/HEAD` → `main` → `develop` → `master`) and read the current branch (`git branch --show-current`).
+2. **Confirm with the user**: "Is `<base>` the branch this work should be based on?" — default to the repo default (main/develop) unless the ticket implies otherwise (e.g. a hotfix on a `release/*` branch). If the current branch is **not** the intended base, STOP and ask.
+3. **Navigate + pull**: create the ticket branch from the confirmed base using the git-branch skill with `--base <name|default> --pull` (it checks out the base, `--ff-only` pulls latest, then branches from it). The skill refuses if the working tree is dirty — commit/stash first.
+4. **Context vs base**: run the context-sync skill with `--base <the same base>` so context is tied to that base. Watch for `rebuildReason: base-branch-changed` or `context-not-ancestor-of-base` — these mean the cached context is more advanced than / diverged from the base (e.g. context built on `main` but work base is a behind-`main` release hotfix). When either fires, let the context-builder do a **full rebuild against the base** before planning; never plan against context that is ahead of the base.
 
 Optional after `ARCHITECT`: if the user explicitly requests an implementation flowchart, invoke `plan-flowchart` with `plan.toon`, persist `{{DOCS_DIR}}/<JIRA>/plan-flowchart.md`, and pass back a short TOON receipt. Otherwise skip this step.
 

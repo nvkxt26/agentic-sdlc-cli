@@ -11,6 +11,13 @@ Pattern:
 
 Use the **git-branch** skill (`{{SKILLS_DIR}}/git-branch/`) to create branches; it validates the pattern.
 
+## Base-branch selection (mandatory at workflow start)
+Before creating a ticket branch, establish the correct **base branch** the work is evaluated against. **Never assume** the currently checked-out branch is the base.
+- **Detect** the repo default: `origin/HEAD` → `main` → `develop` → `master`.
+- **Confirm with the user** whether the work should be based on that branch. Default to the repo default unless the ticket implies otherwise (e.g. a hotfix against a `release/*` branch). If the current branch is not the intended base, STOP and ask.
+- **Navigate + pull**: branch from the confirmed base with `git-branch --base <name|default> --pull` — it checks out the base, `--ff-only` pulls latest, then creates the ticket branch from it. It **refuses to switch base on a dirty working tree** (commit or stash first) so in-progress work is never clobbered.
+- **Sync context to the base**: run `context-sync --base <the same base>`. If it reports `base-branch-changed` or `context-not-ancestor-of-base`, the cached context is ahead of / diverged from the base (e.g. context built on `main` but the work base is a behind-`main` release hotfix) — rebuild context against the base before planning.
+
 ## Commit messages
 Format:
 ```

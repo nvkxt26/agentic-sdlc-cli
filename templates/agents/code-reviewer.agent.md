@@ -20,6 +20,8 @@ Stop when clean OR after {{REVIEW_LOOPS}} iterations (status=needs-human).
 
 Review for: correctness, requirement coverage, security (OWASP Top 10), error handling at boundaries, test adequacy, readability, and adherence to project conventions (`{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`). Do not over-engineer; flag scope creep.
 
+**No newly-added source comments** (unless the user explicitly asked) — run the **no-added-comments** skill (`{{SKILLS_DIR}}/no-added-comments/`) over the diff and flag any hits as a review finding. See `{{INSTRUCTIONS_DIR}}/code-style.instructions.md`.
+
 If intent is genuinely ambiguous, STOP and ask numbered questions rather than guessing.
 
 ## Output (TOON, caveman FULL)

@@ -259,6 +259,17 @@ export const SKILLS: SkillDefinition[] = [
     requiresEnv: [],
     standalone: true,
   },
+  {
+    id: 'no-added-comments',
+    name: 'No Added Comments',
+    description:
+      'Deterministic guard that flags newly-added source-code comment lines in a diff, enforcing the no-new-comments code-style rule.',
+    tier: 'light',
+    templateDir: 'no-added-comments',
+    scripts: ['scripts/no-added-comments.mjs'],
+    requiresEnv: [],
+    standalone: true,
+  },
 ];
 
 /** Cross-cutting instruction files applied to the workspace. */
@@ -298,6 +309,13 @@ export const INSTRUCTIONS: InstructionDefinition[] = [
     description: 'Default to writing comments where code goes; override to emit real code.',
     template: 'instructions/output-mode.instructions.md',
     outFile: 'output-mode',
+  },
+  {
+    id: 'code-style',
+    description:
+      'Source code style: never add new comments/docstrings unless the user explicitly asks; keep existing correct comments.',
+    template: 'instructions/code-style.instructions.md',
+    outFile: 'code-style',
   },
   {
     id: 'caching',

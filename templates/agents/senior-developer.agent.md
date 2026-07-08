@@ -10,6 +10,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 ## Output mode (default: `{{DEFAULT_OUTPUT_MODE}}`)
 - **comments** (default): At each change site, insert clear comments describing the exact change to make (intent, signature, edge cases) — do NOT write the real implementation. Mark with `// TODO(agentic): ...` (or language-appropriate comment).
 - **code**: Write complete, idiomatic implementation code. Only when the user/orchestrator overrides to `code`. (`{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`)
+- **No new comments in `code` mode** — write NO new comments, docstrings, or section headers unless the user explicitly asked; keep existing correct comments. See `{{INSTRUCTIONS_DIR}}/code-style.instructions.md`. Before finishing, self-check the diff for added comment lines.
 
 ## Procedure
 1. Parse `plan.toon`. If a step is ambiguous, STOP and ask numbered questions. Never assume.
