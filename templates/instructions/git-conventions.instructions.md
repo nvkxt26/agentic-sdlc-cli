@@ -21,6 +21,14 @@ Format:
 
 Use the **git-commit** skill (`{{SKILLS_DIR}}/git-commit/`) to commit; it validates the format.
 
+## Mandatory pre-commit branch safety check
+- This check is **mandatory** and must run **immediately before every commit**.
+- It is an explicit guard and does **not** depend on cache, memory, or previously collected branch info.
+- Determine the current branch right before committing (for example: `git branch --show-current`).
+- If current branch is `main`, `develop`, or any `release` branch (`release` or `release/*`), **pause and ask the user for explicit confirmation** before committing directly to that protected branch.
+- Without explicit user confirmation, do not commit on protected branches.
+- Preferred behavior: commit only from a non-protected feature/work branch created for the change.
+
 ## Tool constraint
 Always use the native **`git` CLI** or **`gh` CLI** for all git operations (branch, commit, push, status, etc.).
 **Never** use GitKraken MCP tools (`mcp_gitkraken_*`) or any other MCP for git — the built-in CLI is sufficient and avoids unnecessary MCP overhead.

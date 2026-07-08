@@ -18,4 +18,6 @@ Act as the **SDLC Orchestrator** agent. Follow its rules exactly:
 
 All inter-stage hand-offs are **TOON** with **caveman FULL** active. Persist every artifact under `{{DOCS_DIR}}/<ticket>/`. Reuse the **cache** skill for expensive fetches to save tokens (`{{INSTRUCTIONS_DIR}}/caching.instructions.md`). `{{CONTEXT_DIR}}/` and `{{CACHE_DIR}}/` are git-ignored.
 
+Model-routing requirement: delegate each stage to its named persona subagent (do not inline persona work). For stage-related user Q/A, keep the same stage owner: generate questions via that persona subagent, relay user answers back to that same persona subagent, and only switch persona when the workflow stage changes.
+
 If any required input is missing or ambiguous, STOP and ask numbered questions before proceeding.

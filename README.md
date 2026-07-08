@@ -71,6 +71,12 @@ particular map to whatever provider you have configured (`anthropic/*`,
 The provider set is saved in `.agentic-sdlc.json` (`"providers"`), so future
 `init`/`add` runs reuse it.
 
+When shared template rules change, re-run `init`/`add` for each installed
+provider so rendered files are refreshed (`.github/copilot-instructions.md`,
+`CLAUDE.md`, `AGENTS.md`, and provider instruction folders). For example, the
+protected-branch commit guard (`main`/`develop`/`release*`) is defined once in
+templates and then rendered into each provider layout.
+
 If an older repo still has `.agentic-workflow.json`, the CLI will continue to
 read it for backward compatibility. New writes use `.agentic-sdlc.json`.
 

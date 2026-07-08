@@ -30,9 +30,9 @@ All context files are **TOON** with **caveman FULL** (`{{INSTRUCTIONS_DIR}}/toon
    ```bash
    agentic-workflow run context-sync -- --context-dir {{CONTEXT_DIR}}
    ```
-   It returns `mode` (`full` | `incremental` | `noop`) and the changed files.
-2. **noop** → context already current; still do step 6 (graphify sync is cheap and idempotent), then stop.
-3. **full** (first run) → read the tree, build `overview.toon`, `modules.toon`, `glossary.toon` from scratch.
+   It returns `mode` (`full` | `incremental` | `noop`) and the changed files. The skill is **self-healing**: if the marker exists but `overview.toon`/`modules.toon`/`glossary.toon` are missing, it forces `mode: full` and reports `rebuildReason: context-docs-missing`. Trust `mode` — never treat the marker alone as proof context exists.
+2. **noop** → context already current AND all docs present; still do step 6 (graphify sync is cheap and idempotent), then stop. (If any doc were missing the skill would have returned `full`, not `noop`.)
+3. **full** (first run OR docs missing) → read the tree, build `overview.toon`, `modules.toon`, `glossary.toon` from scratch.
 4. **incremental** → read ONLY the changed files; update the affected entries in the context docs. Add new modules, prune deleted files, revise changed surfaces. Do not re-read unchanged areas.
 5. **Cache** the resulting context under key `context:<headCommit>` via the cache skill so the architect can reuse it.
 6. **Sync the knowledge graph (optional, additive).** Check availability, then refresh:
@@ -45,6 +45,7 @@ All context files are **TOON** with **caveman FULL** (`{{INSTRUCTIONS_DIR}}/toon
    ```bash
    agentic-workflow run context-sync -- --mark --context-dir {{CONTEXT_DIR}}
    ```
+   The skill refuses to stamp the marker if `overview.toon`/`modules.toon`/`glossary.toon` are missing — so only call this AFTER you have actually written the docs. Never pass `--force`.
 8. **Publish (workspace).** If this repo belongs to a workspace, publish the refreshed context to the shared registry so peer repos can consult it:
    ```bash
    agentic-workflow run repo-bridge -- publish
