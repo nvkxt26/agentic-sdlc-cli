@@ -26,8 +26,10 @@ Entry points: `/resolve-ticket` (one ticket), `/ask-repo` (a question), `/plan-e
 - **No assumptions** — if context is missing, stop and ask numbered questions before proceeding. See `{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`.
 - **TOON + caveman FULL** — all inter-agent hand-offs use TOON notation with caveman FULL compression. See `{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md` and `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`.
 - **Git conventions** — branch names and commit messages follow a fixed pattern. See `{{INSTRUCTIONS_DIR}}/git-conventions.instructions.md`.
+- **Protected branch commit guard** — right before every commit, re-check current branch; if on `main`, `develop`, or `release`/`release/*`, require explicit user confirmation before committing directly.
 - **Per-ticket docs** — create `{{DOCS_DIR}}/<JIRA>/` for every ticket. See `{{INSTRUCTIONS_DIR}}/workflow-docs.instructions.md`.
 - **Output mode** — default developer output is `{{DEFAULT_OUTPUT_MODE}}`. See `{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`.
+- **Code comments** — unless explicitly requested, do not add comments in code.
 - **Reuse project conventions** — prefer existing components/utilities/patterns over generic ones. See `{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`.
 - **Cache + context** — reuse fetched data via the cache skill and plan against generated context. See `{{INSTRUCTIONS_DIR}}/caching.instructions.md`. Generated state in `{{CONTEXT_DIR}}/`, `{{CACHE_DIR}}/` and `{{REGISTRY_DIR}}/` is git-ignored.
 - **Workspaces** — when part of a repo group, coordinate via the shared registry and repo-bridge. See `{{INSTRUCTIONS_DIR}}/workspace.instructions.md`.

@@ -2,6 +2,10 @@
 
 Skills that change source code have two output modes. The default is `{{DEFAULT_OUTPUT_MODE}}`.
 
+## Code comments policy
+- Unless the user explicitly asks for comments, do **not** add comments in source code.
+- Keep existing comments unless they are incorrect; do not add new explanatory comments by default.
+
 ## comments (default)
 - Do **not** write the real implementation.
 - At each change site, insert a clear comment describing the change: intent, the function/type signature, parameters, return, edge cases, and which requirement it satisfies.

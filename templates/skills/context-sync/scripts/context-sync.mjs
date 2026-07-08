@@ -59,6 +59,11 @@ function git(args) {
 const contextDir = getArg('context-dir') || '.agentic/context';
 const metaPath = join(contextDir, 'context-meta.json');
 
+const REQUIRED_DOCS = ['overview.toon', 'modules.toon', 'glossary.toon'];
+function missingContextDocs() {
+  return REQUIRED_DOCS.filter((f) => !existsSync(join(contextDir, f)));
+}
+
 try {
   execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { stdio: 'ignore' });
 } catch {
@@ -95,6 +100,13 @@ try {
 
 // ---- --mark mode ------------------------------------------------------------
 if (hasFlag('mark')) {
+  const missing = missingContextDocs();
+  if (missing.length && !hasFlag('force')) {
+    fail(
+      `refusing to mark: context docs missing (${missing.join(', ')}). ` +
+        'write the docs first, then re-run --mark (override with --force).',
+    );
+  }
   if (!existsSync(contextDir)) mkdirSync(contextDir, { recursive: true });
   const meta = {
     version: 1,
@@ -153,16 +165,26 @@ if (!lastCommit) {
   if (mode === 'incremental') changes = parseNameStatus(raw);
 }
 
-console.log(
-  toon({
-    contextSync: {
-      branch,
-      mode,
-      lastCommit: lastCommit,
-      headCommit,
-      contextDir,
-      changeCount: changes.length,
-    },
-    changes,
-  }),
-);
+const missingDocs = missingContextDocs();
+let rebuildReason = null;
+if (missingDocs.length && mode !== 'full') {
+  mode = 'full';
+  rebuildReason = 'context-docs-missing';
+  const files = git(['ls-files']).split('\n').map((f) => f.trim()).filter(Boolean);
+  changes = files.map((file) => ({ status: 'F', file }));
+}
+
+const summary = {
+  branch,
+  mode,
+  lastCommit: lastCommit,
+  headCommit,
+  contextDir,
+  changeCount: changes.length,
+};
+if (rebuildReason) {
+  summary.rebuildReason = rebuildReason;
+  summary.missingDocs = missingDocs;
+}
+
+console.log(toon({ contextSync: summary, changes }));

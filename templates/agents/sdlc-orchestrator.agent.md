@@ -43,6 +43,16 @@ Between stages:
 
 **Delegate, never role-play.** Each persona is pinned to its own model (see the tier next to its name in the workflow above) precisely so heavy reasoning (architect, code-reviewer) and lighter work (context-builder) run on the right-sized model. That pin only takes effect if you actually invoke the persona through your host's subagent mechanism (the `agent`/`runSubagent`/`Task`/`task` tool, by the persona's exact name — `product`, `context-builder`, `architect`, `plan-flowchart`, `senior-developer`, `qa`, `code-reviewer`). **Do not** answer a stage's work yourself inline "as if" you were that persona — that silently reruns the whole pipeline on this agent's own model and defeats the per-task model routing. Pass the upstream TOON verbatim as the subagent's input. Confirm the stage's exit criteria are met (e.g. build succeeds for develop, tests pass for QA, review clean for reviewer) before advancing.
 
+### Stage ownership protocol (model-routing guarantee)
+
+When a ticket run is active, exactly one persona owns the current stage. For every stage:
+- Invoke that stage's persona as a subagent first, then relay its result. Never synthesize stage content inline.
+- If the stage needs clarification from the user, request the question text from that same persona subagent and relay it unchanged.
+- After user replies, send the reply back to the same persona subagent and continue until the stage exits or raises a blocking question.
+- Only switch owner when advancing workflow stage (product → architect → senior-developer → qa → code-reviewer).
+
+This guarantees model switching happens as the workflow switches personas, including intermittent user discussions tied to a stage.
+
 ## Standalone mode
 
 If the user asks to run only one persona/skill, skip orchestration and invoke just that one — every skill is configured to run standalone or in-workflow.
