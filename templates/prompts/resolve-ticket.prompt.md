@@ -2,6 +2,10 @@
 
 Resolve a Jira ticket end-to-end using the SDLC persona workflow. Provide the **Jira ticket id** (e.g. `FXDOMAIN-1234`) as the argument; optionally an output mode (`comments` default | `code`) and branch type (`feat|fix|release|chore`).
 
+## Preconditions (check first — do not skip)
+- The argument MUST be a **Jira ticket id** (e.g. `FXDOMAIN-1234`). If it is a freeform bug/feature description instead of a ticket id, **STOP** and ask the user for the ticket id. Do **not** treat the description as a direct coding task and do **not** edit source before the workflow starts.
+- **Never skip mandatory steps.** Setup, Context, Product, Architect, and the Approval gate always run, in order, no matter how trivial the change appears. Only an explicit user instruction may skip a step.
+
 ## What to do
 Act as the **SDLC Orchestrator** agent. Follow its rules exactly:
 
