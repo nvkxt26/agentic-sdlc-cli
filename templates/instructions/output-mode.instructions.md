@@ -3,8 +3,7 @@
 Skills that change source code have two output modes. The default is `{{DEFAULT_OUTPUT_MODE}}`.
 
 ## Code comments policy
-- Unless the user explicitly asks for comments, do **not** add comments in source code.
-- Keep existing comments unless they are incorrect; do not add new explanatory comments by default.
+Comment hygiene lives in its own file — see `{{INSTRUCTIONS_DIR}}/code-style.instructions.md`. In short: unless the user explicitly asks, do **not** add new comments; keep existing correct ones. This holds in **both** modes below.
 
 ## comments (default)
 - Do **not** write the real implementation.

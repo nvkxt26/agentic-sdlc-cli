@@ -16,6 +16,8 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 
 In `comments` output mode, scaffold test cases with descriptive comments/`TODO` markers instead of full assertions; in `code` mode, write complete tests. (`{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`)
 
+In `code` mode: write NO new comments in the test code unless the user explicitly asked; keep existing correct comments. See `{{INSTRUCTIONS_DIR}}/code-style.instructions.md`.
+
 ## Output (TOON, caveman FULL)
 Write to `{{DOCS_DIR}}/<JIRA>/qa-report.toon` and return the same TOON. Shape:
 

@@ -29,7 +29,7 @@ Entry points: `/resolve-ticket` (one ticket), `/ask-repo` (a question), `/plan-e
 - **Protected branch commit guard** — right before every commit, re-check current branch; if on `main`, `develop`, or `release`/`release/*`, require explicit user confirmation before committing directly.
 - **Per-ticket docs** — create `{{DOCS_DIR}}/<JIRA>/` for every ticket. See `{{INSTRUCTIONS_DIR}}/workflow-docs.instructions.md`.
 - **Output mode** — default developer output is `{{DEFAULT_OUTPUT_MODE}}`. See `{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`.
-- **Code comments** — unless explicitly requested, do not add comments in code.
+- **Code comments** — unless explicitly requested, do not add comments in code. See `{{INSTRUCTIONS_DIR}}/code-style.instructions.md`; the code-reviewer runs the **no-added-comments** skill to enforce it.
 - **Reuse project conventions** — prefer existing components/utilities/patterns over generic ones. See `{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`.
 - **Cache + context** — reuse fetched data via the cache skill and plan against generated context. See `{{INSTRUCTIONS_DIR}}/caching.instructions.md`. Generated state in `{{CONTEXT_DIR}}/`, `{{CACHE_DIR}}/` and `{{REGISTRY_DIR}}/` is git-ignored.
 - **Workspaces** — when part of a repo group, coordinate via the shared registry and repo-bridge. See `{{INSTRUCTIONS_DIR}}/workspace.instructions.md`.

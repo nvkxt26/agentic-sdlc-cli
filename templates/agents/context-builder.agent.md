@@ -23,14 +23,16 @@ All context files are **TOON** with **caveman FULL** (`{{INSTRUCTIONS_DIR}}/toon
 ## Hard rules
 1. **Never assume.** If the default branch is ambiguous or the repo state is unclear, STOP and ask numbered questions. (`{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`)
 2. **TOON for hand-offs**, caveman FULL. (`{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md`, `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`)
-3. Work from the **default branch**. Do not index feature branches.
+3. Work from the **base branch** — the repo default (`main`/`develop`) unless the orchestrator supplies a different work base (e.g. a `release/*` hotfix base). Do not index feature branches. When a base is supplied, pass it through to context-sync as `--base <name>`.
 
 ## Procedure
 1. **Plan the diff.** Run the context-sync skill:
    ```bash
    agentic-workflow run context-sync -- --context-dir {{CONTEXT_DIR}}
+   # hotfix / non-default work base:
+   agentic-workflow run context-sync -- --context-dir {{CONTEXT_DIR}} --base release/1.2
    ```
-   It returns `mode` (`full` | `incremental` | `noop`) and the changed files. The skill is **self-healing**: if the marker exists but `overview.toon`/`modules.toon`/`glossary.toon` are missing, it forces `mode: full` and reports `rebuildReason: context-docs-missing`. Trust `mode` — never treat the marker alone as proof context exists.
+   It returns `mode` (`full` | `incremental` | `noop`) and the changed files. The skill is **self-healing**: if the marker exists but `overview.toon`/`modules.toon`/`glossary.toon` are missing, it forces `mode: full` and reports `rebuildReason: context-docs-missing`. It also forces `mode: full` when the cached context is tied to a different base (`base-branch-changed`) or is ahead of / diverged from the base (`context-not-ancestor-of-base`). Trust `mode` — never treat the marker alone as proof context exists.
 2. **noop** → context already current AND all docs present; still do step 6 (graphify sync is cheap and idempotent), then stop. (If any doc were missing the skill would have returned `full`, not `noop`.)
 3. **full** (first run OR docs missing) → read the tree, build `overview.toon`, `modules.toon`, `glossary.toon` from scratch.
 4. **incremental** → read ONLY the changed files; update the affected entries in the context docs. Add new modules, prune deleted files, revise changed surfaces. Do not re-read unchanged areas.
