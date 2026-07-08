@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
+import { readFileSync } from 'node:fs';
 
 /**
  * Absolute path to the bundled templates/ directory.
@@ -11,6 +12,20 @@ import { homedir } from 'node:os';
 export function templatesDir(): string {
   const here = dirname(fileURLToPath(import.meta.url));
   return join(here, '..', 'templates');
+}
+
+/**
+ * Version string read from the package's own package.json at runtime.
+ *
+ * Both src/ (dev via tsx) and dist/ (published) live one level under the
+ * package root, so `../package.json` resolves correctly in either case.
+ */
+export function packageVersion(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8')) as {
+    version?: string;
+  };
+  return pkg.version ?? '0.0.0';
 }
 
 /** Config file name written into the target project root. */

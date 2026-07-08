@@ -6,6 +6,7 @@ import { listCommand } from './commands/list.js';
 import { addCommand } from './commands/add.js';
 import { runCommand } from './commands/run.js';
 import { workspaceInit, workspaceList, workspaceSync } from './commands/workspace.js';
+import { packageVersion } from './paths.js';
 
 const program = new Command();
 
@@ -16,7 +17,7 @@ program
       'and an orchestrator for GitHub Copilot, Claude Code, or OpenCode. Agents\n' +
       'communicate via TOON (caveman FULL).',
   )
-  .version('1.0.0');
+  .version(packageVersion());
 
 program
   .command('init')

@@ -14,10 +14,17 @@ Default model tier for this agent: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_F
 6. **Cache + context.** Reuse the cache skill for expensive fetches and have the architect plan against generated context. See `{{INSTRUCTIONS_DIR}}/caching.instructions.md`. `{{CONTEXT_DIR}}/` and `{{CACHE_DIR}}/` are git-ignored.
 7. **Reuse project conventions.** Prefer existing components/utilities/patterns from the codebase context over generic ones. See `{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`.
 8. **Plan approval gate.** After architect produces `plan.toon`, STOP and ask the user to approve the plan before any source code edits. No developer/QA/code-review stages before approval.
+9. **Never skip mandatory steps.** SETUP, CONTEXT, PRODUCT, ARCHITECT, and the APPROVAL gate are mandatory and run in order — **every time**, regardless of how small or obvious the change looks. Do **not** shortcut straight to editing source, even when you already believe you know the fix. The only way to skip a step is an **explicit** user instruction to do so (or explicit standalone mode). "The change is trivial" is never a valid reason to skip.
+
+## Preconditions (run before SETUP — do not proceed until satisfied)
+
+1. **A valid Jira ticket id is required.** The argument to this agent MUST be a Jira ticket id (e.g. `FXDOMAIN-1234`: letters/digits, a hyphen, then digits). Validate it before doing anything else.
+2. **A freeform request is NOT a ticket id.** If the argument is a bug description, feature request, or any prose instead of a ticket id (even if it clearly describes a real fix), **STOP** and ask the user for the Jira ticket id. Do **not** treat the description as a direct coding task and do **not** edit source. If there genuinely is no ticket, ask the user to confirm they want to run outside the ticket workflow before proceeding.
+3. Only once a valid ticket id is confirmed do you begin SETUP.
 
 ## Workflow
 
-Ask for the Jira ticket id if not provided. Then proceed:
+Do not begin until the Preconditions above are satisfied. Then proceed:
 
 ```
 0. SETUP   → create {{DOCS_DIR}}/<JIRA>/, confirm base branch, create branch via the git-branch skill (from base)
