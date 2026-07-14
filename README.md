@@ -309,6 +309,36 @@ ticket is targeted at the right repository.
 
 ---
 
+## Review a pull request
+
+The prompt `/review-pr` reviews a PR as a **critical senior developer / architect**.
+Give it a PR link or number. It:
+
+1. fetches the PR metadata (description, branch, changed files) via the `gh` CLI —
+   **without the diff yet**, so its baseline stays unbiased,
+2. **extracts the Jira ticket** from the PR description / branch / title,
+3. refreshes the codebase context (`context-sync`) so the baseline reflects the real tree,
+4. gathers requirements through the **Product Owner** (`jira` skill) and **asks for
+   clarifications** until acceptance criteria are finalized,
+5. builds the solution it would write via the **Architect** and persists it to
+   `docs/<TICKET>/review-plan.toon` — an independent, auditable baseline,
+6. **only then pulls the diff** and compares the PR against that baseline — flagging
+   accuracy gaps, inefficiencies, missing edge cases, new bugs/regressions, security
+   issues, and coding-standard violations,
+7. emits `docs/<TICKET>/pr-review.toon` with a verdict, plus a plain-prose summary,
+8. **discusses the findings with you** and updates the artifact until you conclude, then
+9. **asks for confirmation** before posting — on *yes* it posts the agreed comments to
+   the PR via the `gh` CLI, on *no* it posts nothing.
+
+```
+/review-pr https://github.com/org/repo/pull/42
+```
+
+It never edits source or pushes, and it only posts to the PR after you explicitly
+confirm.
+
+---
+
 ## Extend it: write your own agents, skills & instructions
 
 Everything the CLI installs is a plain Markdown/`.mjs` file in your provider's folder,

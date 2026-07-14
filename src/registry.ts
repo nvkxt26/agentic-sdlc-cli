@@ -376,6 +376,24 @@ export const PROMPTS: PromptDefinition[] = [
     template: 'prompts/plan-epic.prompt.md',
     outFile: 'plan-epic',
   },
+  {
+    id: 'review-pr',
+    description:
+      'Critically review a PR against its Jira ticket as a senior developer/architect.',
+    tier: 'reasoning-max',
+    capabilities: [
+      'read',
+      'search',
+      'usages',
+      'run',
+      'fetch',
+      'changes',
+      'subagents',
+      'todos',
+    ],
+    template: 'prompts/review-pr.prompt.md',
+    outFile: 'review-pr',
+  },
 ];
 
 export function findSkill(id: string): SkillDefinition | undefined {
