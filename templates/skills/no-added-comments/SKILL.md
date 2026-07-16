@@ -29,7 +29,7 @@ Scans a git diff for **added** comment lines and classifies each as `doc` or `in
 ```bash
 node {{SKILLS_DIR}}/no-added-comments/scripts/no-added-comments.mjs --staged
 # or against a range:
-agentic-workflow run no-added-comments -- --range main..HEAD
+agentic-sdlc run no-added-comments -- --range main..HEAD
 ```
 
 ## Output (TOON)

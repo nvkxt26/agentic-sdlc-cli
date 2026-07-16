@@ -28,9 +28,9 @@ All context files are **TOON** with **caveman FULL** (`{{INSTRUCTIONS_DIR}}/toon
 ## Procedure
 1. **Plan the diff.** Run the context-sync skill:
    ```bash
-   agentic-workflow run context-sync -- --context-dir {{CONTEXT_DIR}}
+   agentic-sdlc run context-sync -- --context-dir {{CONTEXT_DIR}}
    # hotfix / non-default work base:
-   agentic-workflow run context-sync -- --context-dir {{CONTEXT_DIR}} --base release/1.2
+   agentic-sdlc run context-sync -- --context-dir {{CONTEXT_DIR}} --base release/1.2
    ```
    It returns `mode` (`full` | `incremental` | `noop`) and the changed files. The skill is **self-healing**: if the marker exists but `overview.toon`/`modules.toon`/`glossary.toon` are missing, it forces `mode: full` and reports `rebuildReason: context-docs-missing`. It also forces `mode: full` when the cached context is tied to a different base (`base-branch-changed`) or is ahead of / diverged from the base (`context-not-ancestor-of-base`). Trust `mode` — never treat the marker alone as proof context exists.
 2. **noop** → context already current AND all docs present; still do step 6 (graphify sync is cheap and idempotent), then stop. (If any doc were missing the skill would have returned `full`, not `noop`.)
@@ -39,18 +39,18 @@ All context files are **TOON** with **caveman FULL** (`{{INSTRUCTIONS_DIR}}/toon
 5. **Cache** the resulting context under key `context:<headCommit>` via the cache skill so the architect can reuse it.
 6. **Sync the knowledge graph (optional, additive).** Check availability, then refresh:
    ```bash
-   agentic-workflow run graphify -- status
-   agentic-workflow run graphify -- build --update   # only if available: true
+   agentic-sdlc run graphify -- status
+   agentic-sdlc run graphify -- build --update   # only if available: true
    ```
    If `available: false`, skip this step entirely — the TOON docs above are already complete and sufficient. If available, you may pull god-nodes / surprising-connections from `graphify-out/GRAPH_REPORT.md` into `overview.toon`'s notes so the architect sees cross-file relationships the flat module map doesn't capture. Never block or fail this agent's run on graphify — it is a bonus, not a dependency.
 7. **Advance the marker** once docs are written:
    ```bash
-   agentic-workflow run context-sync -- --mark --context-dir {{CONTEXT_DIR}}
+   agentic-sdlc run context-sync -- --mark --context-dir {{CONTEXT_DIR}}
    ```
    The skill refuses to stamp the marker if `overview.toon`/`modules.toon`/`glossary.toon` are missing — so only call this AFTER you have actually written the docs. Never pass `--force`.
 8. **Publish (workspace).** If this repo belongs to a workspace, publish the refreshed context to the shared registry so peer repos can consult it:
    ```bash
-   agentic-workflow run repo-bridge -- publish
+   agentic-sdlc run repo-bridge -- publish
    ```
 
 ## Output (TOON, caveman FULL)

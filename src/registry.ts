@@ -270,6 +270,17 @@ export const SKILLS: SkillDefinition[] = [
     requiresEnv: [],
     standalone: true,
   },
+  {
+    id: 'toon-to-md',
+    name: 'TOON to Markdown',
+    description:
+      'Deterministically renders a caveman-FULL TOON artifact into readable Markdown (scalars, objects, primitive arrays, tabular arrays → headings, lists, tables). Structural transform only; does not de-caveman fragments into prose.',
+    tier: 'light',
+    templateDir: 'toon-to-md',
+    scripts: ['scripts/toon-to-md.mjs'],
+    requiresEnv: [],
+    standalone: true,
+  },
 ];
 
 /** Cross-cutting instruction files applied to the workspace. */
@@ -361,12 +372,12 @@ export const PROMPTS: PromptDefinition[] = [
     outFile: 'resolve-ticket',
   },
   {
-    id: 'ask-repo',
+    id: 'mimir',
     description: 'Ask any question about this repo; context is refreshed first if stale.',
     tier: 'reasoning-high',
     capabilities: ['read', 'search', 'usages', 'run', 'fetch', 'subagents'],
-    template: 'prompts/ask-repo.prompt.md',
-    outFile: 'ask-repo',
+    template: 'prompts/mimir.prompt.md',
+    outFile: 'mimir',
   },
   {
     id: 'plan-epic',
@@ -393,6 +404,15 @@ export const PROMPTS: PromptDefinition[] = [
     ],
     template: 'prompts/review-pr.prompt.md',
     outFile: 'review-pr',
+  },
+  {
+    id: 'add-customization',
+    description:
+      'Scaffold a new custom instruction, skill, agent, or prompt for this repo/workspace.',
+    tier: 'reasoning-high',
+    capabilities: ['read', 'search', 'edit', 'run', 'usages'],
+    template: 'prompts/add-customization.prompt.md',
+    outFile: 'add-customization',
   },
 ];
 

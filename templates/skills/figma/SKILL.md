@@ -19,7 +19,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`) — deterministic fetch; the model 
 ```bash
 node {{SKILLS_DIR}}/figma/scripts/figma.mjs --url "https://www.figma.com/design/KEY/Name?node-id=12-34" --out docs/FXDOMAIN-1234/figma
 # or:
-agentic-workflow run figma -- --url "<link>"
+agentic-sdlc run figma -- --url "<link>"
 ```
 
 The script returns image URLs (and saves PNGs when `--out` is given). The model should then open the saved images to identify the required visual changes.

@@ -10,12 +10,12 @@ Goal: **fetch once, reuse everywhere.** Avoid re-fetching or re-reasoning over d
 ## Policy (every stage)
 1. Before any expensive fetch or recompute, **check the cache first**:
    ```bash
-   agentic-workflow run cache -- get --key <stable-key> --raw
+   agentic-sdlc run cache -- get --key <stable-key> --raw
    ```
 2. On a **hit**, reuse the cached TOON. Do not re-fetch.
 3. On a **miss**, do the work once, then **store** it:
    ```bash
-   agentic-workflow run cache -- set --key <stable-key> --file <out.toon> --ttl <seconds>
+   agentic-sdlc run cache -- set --key <stable-key> --file <out.toon> --ttl <seconds>
    ```
 
 ## Stable keys

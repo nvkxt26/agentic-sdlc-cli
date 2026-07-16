@@ -213,7 +213,7 @@ The installed agents:
 
 ## Ask questions about a repo
 
-**Mimir** (prompt `/ask-repo`) answers any question about the current
+**Mimir** (prompt `/mimir`) answers any question about the current
 repository — "where is auth handled?", "what would change to add SSO?" — grounded in
 real code and the generated context. Crucially, it **updates the context beforehand
 if it's stale**: it runs the `context-sync` skill, and if the default branch has
@@ -225,7 +225,7 @@ moved since the last index, it refreshes via the context-builder before answerin
 > honestly a much better deal.
 
 ```
-/ask-repo where are retries configured for the payments client?
+/mimir where are retries configured for the payments client?
 ```
 
 It answers a **human** in plain prose (with `path:line` citations), and answers
@@ -344,6 +344,49 @@ confirm.
 Everything the CLI installs is a plain Markdown/`.mjs` file in your provider's folder,
 so you can **add your own** — no code changes to this package required. Drop a file in
 the right place and your agent auto-discovers it.
+
+### Fastest path: the `/add-customization` prompt
+
+Don't want to remember the folder layout and frontmatter? Run the guided prompt and
+describe what you want — it classifies the kind, asks for anything missing (never
+assumes), writes the file(s) in the right place, and verifies them:
+
+```
+/add-customization skill that generates a changelog from the branch's commits
+/add-customization instruction to always use our in-house design tokens
+/add-customization agent that reviews DB migrations for rollback safety
+/add-customization prompt to open a release checklist
+```
+
+Prefer to do it by hand? The step-by-step for each kind is below.
+
+### Step-by-step (manual)
+
+1. **Choose the kind** — rule → *instruction*; deterministic tool/recipe → *skill*;
+   persona/mode → *agent*; reusable slash-command → *prompt*.
+2. **Pick a scope** — repo (its provider folder), workspace (root provider folder), or
+   global (`--global`, or the user-level locations above). Discovery layers repo →
+   workspace → global.
+3. **Name it** `kebab-case` and write a **precise one-line `description`** — that
+   description is what the agent auto-matches on, so be specific.
+4. **Create the file** in the matching folder (table below), copying the frontmatter
+   shape of an existing sibling so discovery works.
+5. **(Skills)** add `scripts/<name>.mjs` for deterministic work — zero-dependency ESM,
+   reads `--flags`, prints **TOON** on success / `error:` + non-zero exit on failure.
+6. **Verify** — run a deterministic skill once (valid TOON, exit 0); for the others
+   confirm the frontmatter parses and the file sits in the auto-discovered folder.
+7. **(Optional) ship it everywhere** — register it in `src/registry.ts` and re-run
+   `init`/`add` to render it for every provider (per the self-improve rule).
+
+| Kind | Copilot folder | File |
+|---|---|---|
+| instruction | `.github/agentic-sdlc/instructions/` | `<name>.instructions.md` |
+| skill | `.github/agentic-sdlc/skills/<name>/` | `SKILL.md` (+ `scripts/<name>.mjs`) |
+| agent | `.github/agentic-sdlc/agents/` | `<name>.agent.md` |
+| prompt | `.github/agentic-sdlc/prompts/` | `<name>.prompt.md` |
+
+> Claude Code uses `.claude/{instructions,skills,agents,commands}/` and OpenCode
+> `.opencode/{instructions,skills,agent,command}/`. See [Choosing your AI provider](#choosing-your-ai-provider).
 
 ### Add an instruction (a rule that's always applied)
 
@@ -474,7 +517,7 @@ Opt out entirely with `agentic-sdlc init --no-graphify`.
 - **context-builder** refreshes the graph (`graphify -- build --update`) alongside the
   TOON docs on every context sync, and may pull god-nodes/surprising-connections into
   `overview.toon`. Skipped silently if graphify isn't available.
-- **mimir** / `/ask-repo` prefer `graphify -- query "<question>"` (or `path`/`explain`)
+- **mimir** / `/mimir` prefer `graphify -- query "<question>"` (or `path`/`explain`)
   for *relationship* questions ("what connects X to Y", "what breaks if I change Z"),
   falling back to the TOON context for everything else or when graphify is unavailable.
 - Call it directly any time:
@@ -591,7 +634,49 @@ agentic-sdlc run context-sync -- --context-dir .agentic/context
 agentic-sdlc run cache -- get --key jira:FXDOMAIN-1234 --raw
 agentic-sdlc run repo-bridge -- list
 agentic-sdlc run graphify -- query "what connects auth to the database?"
+agentic-sdlc run toon-to-md -- --file docs/FXDOMAIN-1234/plan.toon --out docs/FXDOMAIN-1234/plan.md
 ```
+
+### Render a TOON artifact to readable Markdown (`toon-to-md`)
+
+Hand-off artifacts (`requirements.toon`, `plan.toon`, `dev-report.toon`, …) are
+written in **caveman-FULL TOON** to save tokens. When you need a human-readable
+copy — to paste in a PR, share with a non-engineer, or skim — render it with the
+deterministic **toon-to-md** skill:
+
+```bash
+# write a sibling .md (prints a TOON status block)
+agentic-sdlc run toon-to-md -- --file docs/FXDOMAIN-1234/plan.toon --out docs/FXDOMAIN-1234/plan.md
+
+# quick preview to stdout / pipe
+agentic-sdlc run toon-to-md -- --file docs/FXDOMAIN-1234/requirements.toon
+cat docs/FXDOMAIN-1234/qa-report.toon | agentic-sdlc run toon-to-md --
+```
+
+**Layer 1 (default, deterministic).** A pure 1:1 structural transform — scalars →
+bold bullets, nested objects → headings, tabular arrays → aligned tables. Wide or
+long-text tables auto-fall back to per-row sections so raw Markdown stays readable.
+Force it with `--layout auto|table|sections`. This layer is free and reproducible;
+it does **not** rewrite the caveman fragments.
+
+**Layer 2 (optional, lower-tier model).** Caveman is intentionally lossy;
+turning fragments back into natural sentences needs a model. This runs as a **guarded
+two-phase** flow (`--prose-extract` → model rewrite → `--prose-apply`) so the cheapest
+(`light`) tier is safe to use:
+
+```bash
+# 1. extract caveman leaf fragments + their protected tokens as TOON (stdout)
+agentic-sdlc run toon-to-md -- --file docs/FXDOMAIN-1234/plan.toon --prose-extract > tasks.toon
+# 2. a light-tier model rewrites each task into `rewrites[]{id,text}` (identifiers untouched)
+# 3. apply — any rewrite that drops a protected token is auto-reverted to the original
+agentic-sdlc run toon-to-md -- --file docs/FXDOMAIN-1234/plan.toon --prose-apply rewrites.toon --out plan.md
+```
+
+The apply phase deterministically verifies every protected token (identifiers, paths,
+`REQ-\d+`, code-ish tokens) survives the rewrite; if a small model mangles one, that
+fragment reverts to its original caveman text. Default output stays deterministic —
+prose is strictly opt-in.
+
 
 ---
 

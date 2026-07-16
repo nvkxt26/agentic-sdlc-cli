@@ -28,12 +28,12 @@ Suggested key shapes: `jira:<KEY>`, `figma:<nodeId>`, `context:<commit>`, `plan:
 ## How to run
 ```bash
 # miss → fetch → store
-agentic-workflow run cache -- get --key jira:FXDOMAIN-1234 || \
-  agentic-workflow run jira -- --issue FXDOMAIN-1234 > /tmp/jira.toon && \
-  agentic-workflow run cache -- set --key jira:FXDOMAIN-1234 --file /tmp/jira.toon --ttl 86400
+agentic-sdlc run cache -- get --key jira:FXDOMAIN-1234 || \
+  agentic-sdlc run jira -- --issue FXDOMAIN-1234 > /tmp/jira.toon && \
+  agentic-sdlc run cache -- set --key jira:FXDOMAIN-1234 --file /tmp/jira.toon --ttl 86400
 
 # reuse cached value verbatim
-agentic-workflow run cache -- get --key jira:FXDOMAIN-1234 --raw
+agentic-sdlc run cache -- get --key jira:FXDOMAIN-1234 --raw
 ```
 
 ## Output (TOON)

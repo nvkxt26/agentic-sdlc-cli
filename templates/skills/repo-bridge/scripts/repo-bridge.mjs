@@ -92,7 +92,7 @@ const REPO = repoRoot();
 const REPO_NAME = getArg('repo-name') || basename(REPO);
 const WS_ROOT = getArg('workspace') || findWorkspaceRoot(REPO);
 if (!WS_ROOT) {
-  fail('no .agentic-workspace.json found in any parent dir. Run `agentic-workflow workspace init` at the group root.');
+  fail('no .agentic-workspace.json found in any parent dir. Run `agentic-sdlc workspace init` at the group root.');
 }
 const wsCfg = readJson(join(WS_ROOT, '.agentic-workspace.json'), {});
 const REGISTRY = join(WS_ROOT, wsCfg.registryDir || '.agentic/registry');

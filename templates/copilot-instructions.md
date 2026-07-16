@@ -19,7 +19,7 @@ Installed in `{{AGENTS_DIR}}/`. Pick the appropriate persona, or use the SDLC Or
 | Mimir | Answers any question about this repo; refreshes context first when stale |
 | Epic Planner | Plans a whole Jira epic across a group of repos (workspace) |
 
-Entry points: `/resolve-ticket` (one ticket), `/ask-repo` (a question), `/plan-epic` (an epic across repos).
+Entry points: `/resolve-ticket` (one ticket), `/mimir` (a question), `/plan-epic` (an epic across repos).
 
 ## Always-on rules
 

@@ -9,31 +9,31 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`) — deterministic; the model only o
 
 The channel that lets agents/skills in **different repos communicate about repo context**. It is paired with the **Mimir** agent: repo-bridge is the deterministic transport (publish/read/mailbox); mimir is the intelligence that answers.
 
-Requires a workspace root (`.agentic-workspace.json`, created by `agentic-workflow workspace init`). The shared registry lives at `<workspace>/{{REGISTRY_DIR}}/` (git-ignored).
+Requires a workspace root (`.agentic-workspace.json`, created by `agentic-sdlc workspace init`). The shared registry lives at `<workspace>/{{REGISTRY_DIR}}/` (git-ignored).
 
 ## Actions
 
 ```bash
 # publish THIS repo's context (overview/modules/glossary .toon + marker) to the registry
-agentic-workflow run repo-bridge -- publish
+agentic-sdlc run repo-bridge -- publish
 
 # list every published repo and its manifest
-agentic-workflow run repo-bridge -- list
+agentic-sdlc run repo-bridge -- list
 
 # read a peer repo's published context (all, or one file)
-agentic-workflow run repo-bridge -- read --repo billing
-agentic-workflow run repo-bridge -- read --repo billing --file modules.toon
+agentic-sdlc run repo-bridge -- read --repo billing
+agentic-sdlc run repo-bridge -- read --repo billing --file modules.toon
 
 # ask a peer repo a question (queued to its inbox); prints a question id
-agentic-workflow run repo-bridge -- ask --repo billing --question "does this repo own invoice PDF generation? which modules?"
+agentic-sdlc run repo-bridge -- ask --repo billing --question "does this repo own invoice PDF generation? which modules?"
 
 # on the answering side: the mimir agent reads pending questions...
-agentic-workflow run repo-bridge -- inbox
+agentic-sdlc run repo-bridge -- inbox
 # ...answers one (TOON body, caveman FULL)
-agentic-workflow run repo-bridge -- answer --id <id> --file answer.toon
+agentic-sdlc run repo-bridge -- answer --id <id> --file answer.toon
 
 # the asker collects the reply (searches all repos for the id)
-agentic-workflow run repo-bridge -- answers --id <id>
+agentic-sdlc run repo-bridge -- answers --id <id>
 ```
 
 ## Output (TOON)

@@ -16,19 +16,19 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 ## Procedure
 1. **Fetch the epic and its children** deterministically:
    ```bash
-   agentic-workflow run jira -- --epic FXDOMAIN-1000
+   agentic-sdlc run jira -- --epic FXDOMAIN-1000
    ```
    This returns the epic plus its child issues (key, summary, type, labels).
 2. **Enumerate repos** in the workspace and their published context:
    ```bash
-   agentic-workflow run repo-bridge -- list
+   agentic-sdlc run repo-bridge -- list
    ```
 3. **Route each ticket to repo(s).** For every child ticket, decide which repo(s) must change:
    - Match the ticket's intent against each repo's published context (`overview.toon`, `modules.toon`, `glossary.toon`).
    - When unclear, **ask the repo directly** — post the question to its Mimir agent via repo-bridge and read the answer:
      ```bash
-     agentic-workflow run repo-bridge -- ask --repo <name> --question "does this repo own <capability>? which modules?"
-     agentic-workflow run repo-bridge -- answers --id <questionId>
+     agentic-sdlc run repo-bridge -- ask --repo <name> --question "does this repo own <capability>? which modules?"
+     agentic-sdlc run repo-bridge -- answers --id <questionId>
      ```
    - A ticket may span multiple repos; split it into per-repo work items with a clear order/dependency.
 4. **Sequence** the tickets: identify cross-repo dependencies (e.g. API change in repo A before consumer update in repo B) and order the plan accordingly.

@@ -6,24 +6,24 @@ When this repo is part of a **workspace** (a folder grouping several repos, mark
 - Each repo publishes its generated context to `{{REGISTRY_DIR}}/<repo>/` (git-ignored, at the workspace root).
 - Publish after refreshing context:
   ```bash
-  agentic-workflow run repo-bridge -- publish
+  agentic-sdlc run repo-bridge -- publish
   ```
 - Read peers:
   ```bash
-  agentic-workflow run repo-bridge -- list                 # all repos + manifests
-  agentic-workflow run repo-bridge -- read --repo <name>   # a peer's published context
+  agentic-sdlc run repo-bridge -- list                 # all repos + manifests
+  agentic-sdlc run repo-bridge -- read --repo <name>   # a peer's published context
   ```
 
 ## Agent-to-agent questions
 When you need something only another repo can answer (does it own a capability? which module? blast radius?), **ask its Mimir agent** rather than guessing:
 ```bash
-agentic-workflow run repo-bridge -- ask --repo <name> --question "..."   # post
-agentic-workflow run repo-bridge -- answers --id <questionId>            # read reply
+agentic-sdlc run repo-bridge -- ask --repo <name> --question "..."   # post
+agentic-sdlc run repo-bridge -- answers --id <questionId>            # read reply
 ```
 On the answering side, a repo's **mimir** agent watches its inbox:
 ```bash
-agentic-workflow run repo-bridge -- inbox
-agentic-workflow run repo-bridge -- answer --id <questionId> --file <answer.toon>
+agentic-sdlc run repo-bridge -- inbox
+agentic-sdlc run repo-bridge -- answer --id <questionId> --file <answer.toon>
 ```
 
 ## Rules
