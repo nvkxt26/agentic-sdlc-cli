@@ -5,8 +5,8 @@ Plan the execution of a whole Jira **epic** across the repos in this workspace. 
 ## What to do
 Act as the **Epic Planner** agent:
 
-1. **Fetch the epic + children**: `agentic-workflow run jira -- --epic <epic>`.
-2. **List repos + context**: `agentic-workflow run repo-bridge -- list`.
+1. **Fetch the epic + children**: `agentic-sdlc run jira -- --epic <epic>`.
+2. **List repos + context**: `agentic-sdlc run repo-bridge -- list`.
 3. **Route each child ticket to its repo(s)** by matching intent against each repo's published context; when unclear, ask the repo's **Mimir** agent via `repo-bridge -- ask` / `repo-bridge -- answers`. A ticket may span multiple repos — split it into per-repo work items.
 4. **Sequence** tickets by cross-repo dependencies (e.g. producer before consumer).
 5. **Emit** `{{DOCS_DIR}}/<epic>/epic-plan.toon` (TOON, caveman FULL) with a per-ticket, per-repo, ordered plan.

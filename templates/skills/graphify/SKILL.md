@@ -13,20 +13,20 @@ Thin, best-effort bridge to the third-party [graphify](https://github.com/Graphi
 
 ```bash
 # is the graphify CLI on PATH, and does graphify-out/graph.json already exist?
-agentic-workflow run graphify -- status
+agentic-sdlc run graphify -- status
 
 # build or refresh the graph (code-only extraction is offline, no API key needed)
-agentic-workflow run graphify -- build
-agentic-workflow run graphify -- build --update   # only re-extract changed files
+agentic-sdlc run graphify -- build
+agentic-sdlc run graphify -- build --update   # only re-extract changed files
 
 # ask a relationship/architecture question against the graph
-agentic-workflow run graphify -- query "what connects auth to the database?"
+agentic-sdlc run graphify -- query "what connects auth to the database?"
 
 # shortest relationship path between two named entities
-agentic-workflow run graphify -- path "UserService" "DatabasePool"
+agentic-sdlc run graphify -- path "UserService" "DatabasePool"
 
 # explain a single entity in context
-agentic-workflow run graphify -- explain "RateLimiter"
+agentic-sdlc run graphify -- explain "RateLimiter"
 ```
 
 ## When to use it (context-builder / mimir)
@@ -57,7 +57,7 @@ result: |
 ```
 
 ## Notes
-- Installed/refreshed once, best-effort, during `agentic-workflow init` (or manually — see README). This wrapper never installs the `graphify` CLI itself; it only calls it.
+- Installed/refreshed once, best-effort, during `agentic-sdlc init` (or manually — see README). This wrapper never installs the `graphify` CLI itself; it only calls it.
 - Code-only extraction (`build`) runs fully offline via tree-sitter — no API key required. Extending it to docs/PDFs/images uses the assistant's own model session and needs no extra key either when run via `/graphify` inside the IDE.
 - `graphify-out/` is meant to be committed (it's a shared map for the whole team); only `graphify-out/cost.json` and the `.graphify_python` marker are git-ignored (added automatically during `init`).
 - On any failure (CLI missing, no graph built yet, malformed args) the script emits an `error:`/`available: false` TOON block and exits non-zero — never guess at graph contents.

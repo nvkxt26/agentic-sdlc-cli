@@ -26,7 +26,7 @@ node {{SKILLS_DIR}}/git-branch/scripts/git-branch.mjs --type feat --ticket FXDOM
 # branch a hotfix from a specific base, pulling latest first:
 node {{SKILLS_DIR}}/git-branch/scripts/git-branch.mjs --type fix --ticket FXDOMAIN-0000 --desc "hotfix" --base release/1.2 --pull
 # or:
-agentic-workflow run git-branch -- --type feat --ticket FXDOMAIN-0000 --desc "implement agentic cli" --base default --pull
+agentic-sdlc run git-branch -- --type feat --ticket FXDOMAIN-0000 --desc "implement agentic cli" --base default --pull
 ```
 
 ## Output (TOON)

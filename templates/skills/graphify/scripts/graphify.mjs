@@ -120,7 +120,7 @@ switch (action) {
     const question = rest.filter((a) => !a.startsWith('--')).join(' ');
     if (!question.trim()) fail('query', '--question text required (positional arg after "query")');
     if (!existsSync(GRAPH_PATH)) {
-      fail('query', 'no graph built yet — run `agentic-workflow run graphify -- build` first', {
+      fail('query', 'no graph built yet — run `agentic-sdlc run graphify -- build` first', {
         installHint: INSTALL_HINT,
       });
     }
@@ -142,7 +142,7 @@ switch (action) {
     const [from, to] = rest.filter((a) => !a.startsWith('--'));
     if (!from || !to) fail('path', 'two positional args required: "<from>" "<to>"');
     if (!existsSync(GRAPH_PATH)) {
-      fail('path', 'no graph built yet — run `agentic-workflow run graphify -- build` first');
+      fail('path', 'no graph built yet — run `agentic-sdlc run graphify -- build` first');
     }
     try {
       const out = runGraphify(['path', from, to]);
@@ -162,7 +162,7 @@ switch (action) {
     const name = rest.filter((a) => !a.startsWith('--')).join(' ');
     if (!name.trim()) fail('explain', 'positional arg required: "<name>"');
     if (!existsSync(GRAPH_PATH)) {
-      fail('explain', 'no graph built yet — run `agentic-workflow run graphify -- build` first');
+      fail('explain', 'no graph built yet — run `agentic-sdlc run graphify -- build` first');
     }
     try {
       const out = runGraphify(['explain', name]);

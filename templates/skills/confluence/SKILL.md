@@ -20,7 +20,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`) — deterministic fetch; model only
 node {{SKILLS_DIR}}/confluence/scripts/confluence.mjs --id 123456
 node {{SKILLS_DIR}}/confluence/scripts/confluence.mjs --title "Design doc" --space ENG
 # or:
-agentic-workflow run confluence -- --id 123456
+agentic-sdlc run confluence -- --id 123456
 ```
 
 ## Output (TOON)

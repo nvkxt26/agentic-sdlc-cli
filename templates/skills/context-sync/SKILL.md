@@ -32,10 +32,10 @@ Deterministic git helper that tells the **context-builder** agent *what changed*
 # 1. plan: what changed since last context build?
 node {{SKILLS_DIR}}/context-sync/scripts/context-sync.mjs --context-dir {{CONTEXT_DIR}}
 # or:
-agentic-workflow run context-sync -- --context-dir {{CONTEXT_DIR}}
+agentic-sdlc run context-sync -- --context-dir {{CONTEXT_DIR}}
 
 # 2. after the context-builder agent updates the docs, advance the marker:
-agentic-workflow run context-sync -- --mark --context-dir {{CONTEXT_DIR}}
+agentic-sdlc run context-sync -- --mark --context-dir {{CONTEXT_DIR}}
 ```
 
 ## Output (TOON)

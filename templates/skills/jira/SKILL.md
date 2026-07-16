@@ -24,9 +24,9 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`) — this skill is deterministic; th
 ```bash
 node {{SKILLS_DIR}}/jira/scripts/jira.mjs --issue FXDOMAIN-1234
 # or via the CLI:
-agentic-workflow run jira -- --issue FXDOMAIN-1234
+agentic-sdlc run jira -- --issue FXDOMAIN-1234
 # an epic and its children:
-agentic-workflow run jira -- --epic FXDOMAIN-1000
+agentic-sdlc run jira -- --epic FXDOMAIN-1000
 ```
 
 The script prints **TOON** on stdout (caveman FULL). For a single issue it extracts any Figma URLs found in the description/comments into a `figmaLinks[]` block so the figma skill can follow them.
