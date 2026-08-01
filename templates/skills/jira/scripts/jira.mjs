@@ -7,6 +7,7 @@
  *   node jira.mjs --epic  FXDOMAIN-1000        # epic + its child issues
  * Env:   ATLASSIAN_BASE_URL, ATLASSIAN_EMAIL, ATLASSIAN_API_TOKEN
  */
+import { pathToFileURL } from 'node:url';
 
 // ---- tiny TOON encoder (self-contained) -------------------------------------
 function scalar(v) {
@@ -49,93 +50,155 @@ function getArg(name) {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
-const issue = getArg('issue') || (!process.argv.includes('--epic') && process.argv.find((a) => /^[A-Z][A-Z0-9]+-\d+$/.test(a)));
-const epic = getArg('epic');
-if (!issue && !epic) fail('missing --issue <KEY> or --epic <KEY>');
 
-const base = process.env.ATLASSIAN_BASE_URL;
-const email = process.env.ATLASSIAN_EMAIL;
-const token = process.env.ATLASSIAN_API_TOKEN;
-if (!base || !email || !token) {
-  fail('missing env ATLASSIAN_BASE_URL/ATLASSIAN_EMAIL/ATLASSIAN_API_TOKEN');
-}
-const BASE = base.replace(/\/$/, '');
-const AUTH = 'Basic ' + Buffer.from(`${email}:${token}`).toString('base64');
-
-async function getJson(url) {
-  let res;
-  try {
-    res = await fetch(url, { headers: { Authorization: AUTH, Accept: 'application/json' } });
-  } catch (e) {
-    fail(`request failed: ${e.message}`);
+export function buildJql({ jql, sprint, assignee, board }) {
+  if (jql) {
+    const hasOrderBy = /order\s+by/i.test(jql);
+    return hasOrderBy ? jql : `${jql} ORDER BY priority DESC, created ASC`;
   }
-  if (!res.ok) fail(`http ${res.status} fetching ${url}`);
-  return res.json();
+  let query = '';
+  if (sprint) {
+    if (sprint === 'active') {
+      query = 'sprint in openSprints()';
+    } else if (/^\d+$/.test(sprint)) {
+      query = `sprint = ${sprint}`;
+    } else {
+      throw new Error(`invalid sprint value: ${sprint} (expected numeric id or "active")`);
+    }
+    const user = assignee || 'currentUser()';
+    query += ` AND assignee = ${user}`;
+  } else {
+    const user = assignee || 'currentUser()';
+    query = `assignee = ${user}`;
+  }
+  return `${query} ORDER BY priority DESC, created ASC`;
 }
 
-// ---- ADF → plain text (best effort) -----------------------------------------
-function adfText(node) {
-  if (!node) return '';
-  if (typeof node === 'string') return node;
-  let t = '';
-  if (node.text) t += node.text;
-  if (Array.isArray(node.content)) t += node.content.map(adfText).join(' ');
-  return t;
-}
-const FIGMA_RE = /https?:\/\/(?:www\.)?figma\.com\/[^\s)"']+/g;
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const issue = getArg('issue') || (!process.argv.includes('--epic') && !process.argv.includes('--jql') && !process.argv.includes('--sprint') && process.argv.find((a) => /^[A-Z][A-Z0-9]+-\d+$/.test(a)));
+  const epic = getArg('epic');
+  const jql = getArg('jql');
+  const sprint = getArg('sprint');
+  const assignee = getArg('assignee');
+  const board = getArg('board');
 
-async function fetchIssue(key) {
-  const fields = 'summary,description,status,issuetype,labels,comment,issuelinks';
-  const url = `${BASE}/rest/api/3/issue/${encodeURIComponent(key)}?fields=${fields}`;
-  const data = await getJson(url);
-  const f = data.fields || {};
+  if (!issue && !epic && !jql && !sprint && !assignee && !board) {
+    fail('missing --issue <KEY>, --epic <KEY>, --jql <query>, or --sprint <id|active>');
+  }
 
-  const descText = adfText(f.description);
-  const comments = (f.comment?.comments || []).map((c) => ({
-    author: c.author?.displayName || 'unknown',
-    body: adfText(c.body),
-  }));
-  const links = (f.issuelinks || [])
-    .map((l) => {
-      const o = l.outwardIssue || l.inwardIssue;
-      if (!o) return null;
-      return { type: l.type?.name || 'rel', key: o.key, summary: o.fields?.summary || '' };
-    })
-    .filter(Boolean);
+  const base = process.env.ATLASSIAN_BASE_URL;
+  const email = process.env.ATLASSIAN_EMAIL;
+  const token = process.env.ATLASSIAN_API_TOKEN;
+  if (!base || !email || !token) {
+    fail('missing env ATLASSIAN_BASE_URL/ATLASSIAN_EMAIL/ATLASSIAN_API_TOKEN');
+  }
+  const BASE = base.replace(/\/$/, '');
+  const AUTH = 'Basic ' + Buffer.from(`${email}:${token}`).toString('base64');
 
-  const haystack = [descText, ...comments.map((c) => c.body)].join('\n');
-  const figmaLinks = Array.from(new Set(haystack.match(FIGMA_RE) || []));
+  async function getJson(url) {
+    let res;
+    try {
+      res = await fetch(url, { headers: { Authorization: AUTH, Accept: 'application/json' } });
+    } catch (e) {
+      fail(`request failed: ${e.message}`);
+    }
+    if (!res.ok) fail(`http ${res.status} fetching ${url}`);
+    return res.json();
+  }
 
-  return {
-    issue: {
-      key: data.key,
-      summary: f.summary || '',
-      status: f.status?.name || '',
-      type: f.issuetype?.name || '',
-    },
-    labels: f.labels || [],
-    description: descText,
-    comments,
-    links,
-    figmaLinks,
-  };
-}
+  // ---- ADF → plain text (best effort) -----------------------------------------
+  function adfText(node) {
+    if (!node) return '';
+    if (typeof node === 'string') return node;
+    let t = '';
+    if (node.text) t += node.text;
+    if (Array.isArray(node.content)) t += node.content.map(adfText).join(' ');
+    return t;
+  }
+  const FIGMA_RE = /https?:\/\/(?:www\.)?figma\.com\/[^\s)"']+/g;
 
-async function fetchEpicChildren(epicKey) {
-  // Team-managed projects use `parent`; company-managed use the "Epic Link" field.
-  const jql = `parent = "${epicKey}" OR "Epic Link" = "${epicKey}" ORDER BY created ASC`;
-  const url = `${BASE}/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=summary,issuetype,status,labels&maxResults=100`;
-  const data = await getJson(url);
-  return (data.issues || []).map((i) => ({
-    key: i.key,
-    summary: i.fields?.summary || '',
-    type: i.fields?.issuetype?.name || '',
-    status: i.fields?.status?.name || '',
-    labels: (i.fields?.labels || []).join('|'),
-  }));
-}
+  async function fetchIssue(key) {
+    const fields = 'summary,description,status,issuetype,labels,comment,issuelinks';
+    const url = `${BASE}/rest/api/3/issue/${encodeURIComponent(key)}?fields=${fields}`;
+    const data = await getJson(url);
+    const f = data.fields || {};
 
-(async () => {
+    const descText = adfText(f.description);
+    const comments = (f.comment?.comments || []).map((c) => ({
+      author: c.author?.displayName || 'unknown',
+      body: adfText(c.body),
+    }));
+    const links = (f.issuelinks || [])
+      .map((l) => {
+        const o = l.outwardIssue || l.inwardIssue;
+        if (!o) return null;
+        return { type: l.type?.name || 'rel', key: o.key, summary: o.fields?.summary || '' };
+      })
+      .filter(Boolean);
+
+    const haystack = [descText, ...comments.map((c) => c.body)].join('\n');
+    const figmaLinks = Array.from(new Set(haystack.match(FIGMA_RE) || []));
+
+    return {
+      issue: {
+        key: data.key,
+        summary: f.summary || '',
+        status: f.status?.name || '',
+        type: f.issuetype?.name || '',
+      },
+      labels: f.labels || [],
+      description: descText,
+      comments,
+      links,
+      figmaLinks,
+    };
+  }
+
+  async function fetchEpicChildren(epicKey) {
+    // Team-managed projects use `parent`; company-managed use the "Epic Link" field.
+    const jql = `parent = "${epicKey}" OR "Epic Link" = "${epicKey}" ORDER BY created ASC`;
+    const url = `${BASE}/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=summary,issuetype,status,labels&maxResults=100`;
+    const data = await getJson(url);
+    return (data.issues || []).map((i) => ({
+      key: i.key,
+      summary: i.fields?.summary || '',
+      type: i.fields?.issuetype?.name || '',
+      status: i.fields?.status?.name || '',
+      labels: (i.fields?.labels || []).join('|'),
+    }));
+  }
+
+  async function fetchTickets(jql) {
+    const url = `${BASE}/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=summary,issuetype,status,labels,priority,created,assignee&maxResults=100`;
+    const data = await getJson(url);
+    return (data.issues || []).map((i) => ({
+      key: i.key,
+      summary: i.fields?.summary || '',
+      type: i.fields?.issuetype?.name || '',
+      status: i.fields?.status?.name || '',
+      priority: i.fields?.priority?.name || '',
+      created: i.fields?.created?.split('T')[0] || '',
+      assignee: i.fields?.assignee?.displayName || '',
+    }));
+  }
+
+  (async () => {
+  if (jql || sprint || assignee || board) {
+    try {
+      const query = buildJql({ jql, sprint, assignee, board });
+      const tickets = await fetchTickets(query);
+      console.log(
+        toon({
+          query: { jql: query, count: tickets.length },
+          tickets,
+        }),
+      );
+    } catch (e) {
+      fail(e.message);
+    }
+    return;
+  }
+
   if (epic) {
     const parent = await fetchIssue(epic);
     const children = await fetchEpicChildren(epic);
@@ -157,4 +220,5 @@ async function fetchEpicChildren(epicKey) {
 
   const result = await fetchIssue(issue);
   console.log(toon(result));
-})();
+  })();
+}

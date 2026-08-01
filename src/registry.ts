@@ -155,6 +155,37 @@ export const AGENTS: AgentDefinition[] = [
     order: 9,
     primary: true,
   },
+  {
+    id: 'resolve-assigned',
+    name: 'Resolve-Assigned',
+    description:
+      'Batch resolution coordinator: fetches all tickets assigned to the current user from a Jira sprint, processes each sequentially through the full SDLC pipeline (context, product, architect, approval, develop, QA, review, commit) with fail-fast on error.',
+    tier: 'reasoning-max',
+    capabilities: [
+      'read',
+      'search',
+      'edit',
+      'run',
+      'fetch',
+      'usages',
+      'changes',
+      'tests',
+      'todos',
+      'subagents',
+    ],
+    template: 'agents/resolve-assigned.agent.md',
+    outFile: 'resolve-assigned',
+    order: 10,
+    primary: true,
+    subagents: [
+      'context-builder',
+      'product',
+      'architect',
+      'senior-developer',
+      'qa',
+      'code-reviewer',
+    ],
+  },
 ];
 
 /**
@@ -413,6 +444,26 @@ export const PROMPTS: PromptDefinition[] = [
     capabilities: ['read', 'search', 'edit', 'run', 'usages'],
     template: 'prompts/add-customization.prompt.md',
     outFile: 'add-customization',
+  },
+  {
+    id: 'resolve-assigned',
+    description:
+      'Batch-resolve all tickets assigned to the current user from a Jira sprint, sequentially processing each through the full SDLC pipeline.',
+    tier: 'reasoning-max',
+    capabilities: [
+      'read',
+      'search',
+      'edit',
+      'run',
+      'fetch',
+      'usages',
+      'changes',
+      'tests',
+      'todos',
+      'subagents',
+    ],
+    template: 'prompts/resolve-assigned.prompt.md',
+    outFile: 'resolve-assigned',
   },
 ];
 

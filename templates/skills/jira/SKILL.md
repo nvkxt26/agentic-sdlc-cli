@@ -1,6 +1,6 @@
 ---
 name: jira
-description: "Deterministically fetch a Jira issue (fields, description, comments, links, Figma links) — or a whole epic with its child issues (--epic) — and emit it as TOON. Use when a ticket's or epic's details are needed. Runs standalone or as the first step of the SDLC / epic-planning workflow."
+description: "Deterministically fetch a Jira issue (fields, description, comments, links, Figma links) — or a whole epic with its child issues (--epic) — or a list of tickets matching a sprint/JQL query (--sprint/--jql) — and emit it as TOON. Use when a ticket's, epic's, or sprint's details are needed. Runs standalone or as the first step of the SDLC / epic-planning / batch-resolution workflow."
 ---
 
 # jira skill
@@ -10,10 +10,15 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`) — this skill is deterministic; th
 ## When to use
 - The product persona (or a user) needs the full context of a Jira ticket.
 - The epic planner needs an epic and all of its child issues.
+- The batch resolver needs a list of tickets from a sprint or JQL query.
 
 ## Inputs
 - `--issue <KEY>` — a single issue, e.g. `FXDOMAIN-1234`.
 - `--epic <KEY>` — an epic; returns the epic plus its child issues.
+- `--sprint <id|active>` — fetch tickets from a sprint (numeric id or `active` for open sprints) assigned to the current user (or `--assignee` override).
+- `--jql <query>` — raw JQL query string (automatically appends `ORDER BY priority DESC, created ASC` unless the query already contains an order-by clause).
+- `--assignee <user>` — override the default `currentUser()` assignee filter when combined with `--sprint` or as standalone assignee query.
+- `--board <id>` — (optional, informational only; board is not a JQL field) — ignored unless combined with a sprint/assignee query.
 
 ## Required environment
 - `ATLASSIAN_BASE_URL` — e.g. `https://your-org.atlassian.net`
@@ -22,14 +27,33 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`) — this skill is deterministic; th
 
 ## How to run (deterministic)
 ```bash
+# single issue
 node {{SKILLS_DIR}}/jira/scripts/jira.mjs --issue FXDOMAIN-1234
 # or via the CLI:
 agentic-sdlc run jira -- --issue FXDOMAIN-1234
+
 # an epic and its children:
 agentic-sdlc run jira -- --epic FXDOMAIN-1000
+
+# tickets from active sprint assigned to current user
+agentic-sdlc run jira -- --sprint active
+
+# tickets from a specific sprint
+agentic-sdlc run jira -- --sprint 123
+
+# raw JQL query
+agentic-sdlc run jira -- --jql "assignee = currentUser() AND status != Done"
 ```
 
 The script prints **TOON** on stdout (caveman FULL). For a single issue it extracts any Figma URLs found in the description/comments into a `figmaLinks[]` block so the figma skill can follow them.
+
+## Sprint → JQL mapping
+When `--sprint` is provided, the skill builds a JQL query:
+- `--sprint <id>` (numeric) → `sprint = <id> AND assignee = currentUser() ORDER BY priority DESC, created ASC`
+- `--sprint active` → `sprint in openSprints() AND assignee = currentUser() ORDER BY priority DESC, created ASC`
+- Optional `--assignee <name>` overrides `currentUser()`.
+
+**Note**: The `sprint` JQL field requires Jira Agile/boards to be enabled. If the project does not use boards, the query will fail with a Jira error (surfaced verbatim as an `error:` TOON block).
 
 ## Output (TOON)
 Single issue:
@@ -58,5 +82,17 @@ epic:
 children[4]{key,summary,type,status,labels}:
   ...
 ```
+
+Sprint/JQL query:
+```
+query:
+  jql: sprint = 123 AND assignee = currentUser() ORDER BY priority DESC, created ASC
+  count: 7
+tickets[7]{key,summary,type,status,priority,created,assignee}:
+  FXDOMAIN-1234,implement feature X,Story,In Progress,High,2026-07-15,Jane Doe
+  ...
+```
+
+Empty result → `tickets[0]`.
 
 On failure the script emits an `error:` TOON block and exits non-zero. Do not assume values — if a field is missing, surface it.
