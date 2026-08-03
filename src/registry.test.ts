@@ -13,6 +13,32 @@ describe('registry lookups', () => {
   });
 });
 
+describe('registry invariants', () => {
+  it('all AGENT ids are unique', () => {
+    const ids = AGENTS.map((a) => a.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it('all AGENT outFiles are unique', () => {
+    const outFiles = AGENTS.map((a) => a.outFile);
+    const uniqueOutFiles = new Set(outFiles);
+    expect(uniqueOutFiles.size).toBe(outFiles.length);
+  });
+
+  it('all PROMPT ids are unique', () => {
+    const ids = PROMPTS.map((p) => p.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it('all PROMPT outFiles are unique', () => {
+    const outFiles = PROMPTS.map((p) => p.outFile);
+    const uniqueOutFiles = new Set(outFiles);
+    expect(uniqueOutFiles.size).toBe(outFiles.length);
+  });
+});
+
 describe('resolve-assigned registry entries', () => {
   it('resolve-assigned agent is registered with correct properties', () => {
     const agent = findAgent('resolve-assigned');
@@ -79,10 +105,42 @@ describe('resolve-assigned registry entries', () => {
   });
 
   it('AGENTS array has expected count', () => {
-    expect(AGENTS.length).toBe(11);
+    expect(AGENTS.length).toBe(12);
   });
 
   it('PROMPTS array has expected count', () => {
-    expect(PROMPTS.length).toBe(6);
+    expect(PROMPTS.length).toBe(7);
+  });
+});
+
+describe('dependabot-consolidator registry entries', () => {
+  it('dependabot-consolidator agent is registered with correct properties', () => {
+    const agent = findAgent('dependabot-consolidator');
+    expect(agent).toBeDefined();
+    expect(agent?.name).toBe('Dependabot Consolidator');
+    expect(agent?.tier).toBe('reasoning-high');
+    expect(agent?.primary).toBe(true);
+    expect(agent?.order).toBe(11);
+    expect(agent?.template).toBe('agents/dependabot-consolidator.agent.md');
+  });
+
+  it('dependabot-consolidator agent has correct capabilities (no subagents)', () => {
+    const agent = findAgent('dependabot-consolidator');
+    const expectedCaps = ['read', 'search', 'edit', 'run', 'changes', 'todos'];
+    expect(agent?.capabilities).toEqual(expectedCaps);
+    expect(agent?.subagents).toBeUndefined();
+  });
+
+  it('consolidate-dependabot prompt is registered with correct properties', () => {
+    const prompt = PROMPTS.find((p) => p.id === 'consolidate-dependabot');
+    expect(prompt).toBeDefined();
+    expect(prompt?.tier).toBe('reasoning-high');
+    expect(prompt?.template).toBe('prompts/consolidate-dependabot.prompt.md');
+  });
+
+  it('consolidate-dependabot prompt has correct capabilities', () => {
+    const prompt = PROMPTS.find((p) => p.id === 'consolidate-dependabot');
+    const expectedCaps = ['read', 'search', 'edit', 'run', 'changes', 'todos'];
+    expect(prompt?.capabilities).toEqual(expectedCaps);
   });
 });
