@@ -27,3 +27,6 @@ docs/
 .agentic/logs/
 
 .vscode/settings.json
+
+# graphify (generated local-only state)
+graphify-out/
