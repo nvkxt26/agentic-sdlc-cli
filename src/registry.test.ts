@@ -113,6 +113,45 @@ describe('resolve-assigned registry entries', () => {
   });
 });
 
+describe('resolve-code-scanning registry entries', () => {
+  it('code-scanning-remediator agent is registered with correct properties', () => {
+    const agent = findAgent('code-scanning-remediator');
+    expect(agent).toBeDefined();
+    expect(agent?.name).toBe('Code Scanning Remediator');
+    expect(agent?.tier).toBe('reasoning-high');
+    expect(agent?.primary).toBe(true);
+    expect(agent?.order).toBe(11);
+    expect(agent?.template).toBe('agents/code-scanning-remediator.agent.md');
+  });
+
+  it('code-scanning-remediator agent has correct capabilities', () => {
+    const agent = findAgent('code-scanning-remediator');
+    const expectedCaps = ['read', 'search', 'edit', 'run', 'changes', 'todos'];
+    expect(agent?.capabilities).toEqual(expectedCaps);
+  });
+
+  it('resolve-code-scanning prompt is registered with correct properties', () => {
+    const prompt = PROMPTS.find((p) => p.id === 'resolve-code-scanning');
+    expect(prompt).toBeDefined();
+    expect(prompt?.tier).toBe('reasoning-high');
+    expect(prompt?.template).toBe('prompts/resolve-code-scanning.prompt.md');
+  });
+
+  it('resolve-code-scanning prompt has correct capabilities', () => {
+    const prompt = PROMPTS.find((p) => p.id === 'resolve-code-scanning');
+    const expectedCaps = ['read', 'search', 'edit', 'run', 'changes', 'todos'];
+    expect(prompt?.capabilities).toEqual(expectedCaps);
+  });
+
+  it('AGENTS array has expected count', () => {
+    expect(AGENTS.length).toBe(12);
+  });
+
+  it('PROMPTS array has expected count', () => {
+    expect(PROMPTS.length).toBe(7);
+  });
+});
+
 describe('dependabot-consolidator registry entries', () => {
   it('dependabot-consolidator agent is registered with correct properties', () => {
     const agent = findAgent('dependabot-consolidator');

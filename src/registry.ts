@@ -187,6 +187,18 @@ export const AGENTS: AgentDefinition[] = [
     ],
   },
   {
+    id: 'code-scanning-remediator',
+    name: 'Code Scanning Remediator',
+    description:
+      'Prompt-driven workflow: discovers open GitHub code-scanning alerts for a repo, dismisses user-confirmed false positives via gh api, fixes real alerts with code changes, and consolidates the fixes into one PR. Reuses git-branch/git-commit skills.',
+    tier: 'reasoning-high',
+    capabilities: ['read', 'search', 'edit', 'run', 'changes', 'todos'],
+    template: 'agents/code-scanning-remediator.agent.md',
+    outFile: 'code-scanning-remediator',
+    order: 11,
+    primary: true,
+  },
+  {
     id: 'dependabot-consolidator',
     name: 'Dependabot Consolidator',
     description:
@@ -195,7 +207,7 @@ export const AGENTS: AgentDefinition[] = [
     capabilities: ['read', 'search', 'edit', 'run', 'changes', 'todos'],
     template: 'agents/dependabot-consolidator.agent.md',
     outFile: 'dependabot-consolidator',
-    order: 11,
+    order: 12,
     primary: true,
   },
 ];
@@ -478,6 +490,15 @@ export const PROMPTS: PromptDefinition[] = [
     outFile: 'resolve-assigned',
   },
   {
+    id: 'resolve-code-scanning',
+    description:
+      'Triage a repo\'s open GitHub code-scanning alerts: dismiss confirmed false positives, fix the real ones, and consolidate the fixes into a single PR.',
+    tier: 'reasoning-high',
+    capabilities: ['read', 'search', 'edit', 'run', 'changes', 'todos'],
+    template: 'prompts/resolve-code-scanning.prompt.md',
+    outFile: 'resolve-code-scanning',
+  },
+  {
     id: 'consolidate-dependabot',
     description:
       'Discover open Dependabot PRs, consolidate their version bumps into one PR, close the originals, and resolve dependency vulnerabilities via npm audit.',
@@ -485,7 +506,7 @@ export const PROMPTS: PromptDefinition[] = [
     capabilities: ['read', 'search', 'edit', 'run', 'changes', 'todos'],
     template: 'prompts/consolidate-dependabot.prompt.md',
     outFile: 'consolidate-dependabot',
-  },
+  }
 ];
 
 export function findSkill(id: string): SkillDefinition | undefined {
