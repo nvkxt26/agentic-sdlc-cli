@@ -198,6 +198,18 @@ export const AGENTS: AgentDefinition[] = [
     order: 11,
     primary: true,
   },
+  {
+    id: 'dependabot-consolidator',
+    name: 'Dependabot Consolidator',
+    description:
+      'Prompt-driven workflow: discovers OPEN Dependabot PRs via gh, consolidates their version bumps into one PR, closes originals, and resolves dependency vulnerabilities via npm audit. Reuses git-branch/git-commit skills.',
+    tier: 'reasoning-high',
+    capabilities: ['read', 'search', 'edit', 'run', 'changes', 'todos'],
+    template: 'agents/dependabot-consolidator.agent.md',
+    outFile: 'dependabot-consolidator',
+    order: 12,
+    primary: true,
+  },
 ];
 
 /**
@@ -486,6 +498,15 @@ export const PROMPTS: PromptDefinition[] = [
     template: 'prompts/resolve-code-scanning.prompt.md',
     outFile: 'resolve-code-scanning',
   },
+  {
+    id: 'consolidate-dependabot',
+    description:
+      'Discover open Dependabot PRs, consolidate their version bumps into one PR, close the originals, and resolve dependency vulnerabilities via npm audit.',
+    tier: 'reasoning-high',
+    capabilities: ['read', 'search', 'edit', 'run', 'changes', 'todos'],
+    template: 'prompts/consolidate-dependabot.prompt.md',
+    outFile: 'consolidate-dependabot',
+  }
 ];
 
 export function findSkill(id: string): SkillDefinition | undefined {
