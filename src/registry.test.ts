@@ -105,11 +105,11 @@ describe('resolve-assigned registry entries', () => {
   });
 
   it('AGENTS array has expected count', () => {
-    expect(AGENTS.length).toBe(12);
+    expect(AGENTS.length).toBe(13);
   });
 
   it('PROMPTS array has expected count', () => {
-    expect(PROMPTS.length).toBe(7);
+    expect(PROMPTS.length).toBe(8);
   });
 });
 
@@ -144,11 +144,11 @@ describe('resolve-code-scanning registry entries', () => {
   });
 
   it('AGENTS array has expected count', () => {
-    expect(AGENTS.length).toBe(12);
+    expect(AGENTS.length).toBe(13);
   });
 
   it('PROMPTS array has expected count', () => {
-    expect(PROMPTS.length).toBe(7);
+    expect(PROMPTS.length).toBe(8);
   });
 });
 
@@ -159,7 +159,7 @@ describe('dependabot-consolidator registry entries', () => {
     expect(agent?.name).toBe('Dependabot Consolidator');
     expect(agent?.tier).toBe('reasoning-high');
     expect(agent?.primary).toBe(true);
-    expect(agent?.order).toBe(11);
+    expect(agent?.order).toBe(12);
     expect(agent?.template).toBe('agents/dependabot-consolidator.agent.md');
   });
 
