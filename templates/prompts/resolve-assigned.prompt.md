@@ -20,7 +20,7 @@ Act as the **Resolve-Assigned** agent. Follow its rules exactly.
    - Gather requirements via **product** → `requirements.toon`.
    - Plan via **architect** against `{{CONTEXT_DIR}}/` (reuse cache) → `plan.toon`.
    - **Per-ticket approval gate** — STOP and ask the user to approve `plan.toon` before continuing. Do not edit source without approval. If declined, record the ticket as skipped/failed and STOP the batch (fail-fast).
-   - Apply plan via **senior-developer** in `code` output mode → `dev-report.toon`; ensure build passes.
+   - Apply plan via **senior-developer** as real implementation code → `dev-report.toon`; ensure build passes.
    - Add tests via **qa** → `qa-report.toon`.
    - Review via **code-reviewer** (up to {{REVIEW_LOOPS}}x) → `review-log.toon`. If review is unclean after {{REVIEW_LOOPS}} loops, record the ticket as failed and STOP the batch (fail-fast).
    - Commit via **git-commit** (`[<ticket>]: <description>`).
@@ -46,9 +46,8 @@ Act as the **Resolve-Assigned** agent. Follow its rules exactly.
 
 ## Hard rules (apply to every ticket)
 - **Never assume.** If context is missing, STOP and ask numbered questions. (`{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`)
-- **TOON for all hand-offs**, caveman FULL. (`{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md`, `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`)
+- **TOON + caveman by default** — pass `--no-toon` / `--no-caveman` to bypass per run. (`{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md`, `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`)
 - **Git conventions** (branch, commit). (`{{INSTRUCTIONS_DIR}}/git-conventions.instructions.md`)
-- **Output mode = code** (real implementation, not comments) for all tickets in the batch.
 - **Cache + context** reuse. (`{{INSTRUCTIONS_DIR}}/caching.instructions.md`)
 - **Reuse project conventions** from codebase context. (`{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`)
 - **Approval gate per ticket** — mandatory; never skip.

@@ -17,7 +17,6 @@ const SAFE_TERMINAL_AUTO_APPROVE: Record<string, boolean> = {
   '/^(npx\\s+)?agentic-sdlc\\s+run\\s+context-sync\\b/': true,
   '/^(npx\\s+)?agentic-sdlc\\s+run\\s+cache\\b/': true,
   '/^(npx\\s+)?agentic-sdlc\\s+run\\s+repo-bridge\\b/': true,
-  '/^(npx\\s+)?agentic-sdlc\\s+run\\s+graphify\\b/': true,
   '/^(npx\\s+)?agentic-sdlc\\s+run\\s+git-branch\\b/': true,
 };
 

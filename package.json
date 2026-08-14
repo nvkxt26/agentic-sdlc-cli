@@ -1,7 +1,7 @@
 {
   "name": "@nvkxt26/agentic-sdlc-cli",
   "version": "2.6.1",
-  "description": "Installable agentic SDLC workflow CLI for GitHub Copilot, Claude Code and OpenCode — persona agents, deterministic skills, an orchestrator, cross-repo workspaces and epic planning that communicate via TOON/caveman format",
+  "description": "Installable agentic SDLC workflow CLI for GitHub Copilot (primary) and Claude Code (secondary) — persona agents, deterministic skills, an orchestrator, cross-repo workspaces and epic planning that communicate via TOON/caveman format",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",

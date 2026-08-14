@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import {
   MODEL_TIERS,
   CLAUDE_MODEL_TIERS,
-  OPENCODE_MODEL_TIERS,
   type ModelChoice,
 } from './models.js';
 import { vscodeUserDir } from './paths.js';
@@ -23,8 +22,7 @@ import type {
  *
  * The template *bodies* are provider-neutral (placeholders like
  * `{{AGENTS_DIR}}`, `{{MODEL}}`); the provider supplies the frontmatter and the
- * path substitutions so the same body works for Copilot, Claude Code and
- * OpenCode.
+ * path substitutions so the same body works for Copilot and Claude Code.
  */
 export interface ProviderSpec {
   id: ProviderId;
@@ -86,19 +84,6 @@ const CLAUDE_TOOLS: Record<Capability, string[]> = {
   subagents: ['Task'],
 };
 
-const OPENCODE_TOOLS: Record<Capability, string[]> = {
-  read: ['read'],
-  search: ['grep', 'glob'],
-  edit: ['write', 'edit'],
-  run: ['bash'],
-  usages: ['grep'],
-  fetch: ['webfetch'],
-  tests: ['bash'],
-  changes: ['bash'],
-  todos: ['todowrite'],
-  subagents: ['task'],
-};
-
 function mapTools(caps: Capability[], table: Record<Capability, string[]>): string[] {
   const out = new Set<string>();
   for (const c of caps) for (const t of table[c] ?? []) out.add(t);
@@ -152,7 +137,7 @@ const copilot: ProviderSpec = {
     ];
     // Persona subagents are delegation-only: keep them out of the top-level
     // agents dropdown so users always enter through orchestrator/mimir/
-    // epic-planner, matching OpenCode's mode:subagent semantics.
+    // epic-planner.
     if (!a.primary) lines.push('user-invocable: false');
     // Restrict which custom agents this one may invoke as a subagent. Without
     // this, Copilot may pick an unintended agent with a similar name/description
@@ -226,47 +211,7 @@ const claude: ProviderSpec = {
   },
 };
 
-const opencode: ProviderSpec = {
-  id: 'opencode',
-  label: 'OpenCode',
-  agentsDir: '.opencode/agent',
-  skillsDir: '.opencode/skills',
-  instructionsDir: '.opencode/instructions',
-  promptsDir: '.opencode/command',
-  alwaysOnFile: 'AGENTS.md',
-  models: OPENCODE_MODEL_TIERS,
-  agentFile: (id) => `${id}.md`,
-  instructionFile: (id) => `${id}.instructions.md`,
-  promptFile: (id) => `${id}.md`,
-  agentFrontmatter(a, model) {
-    const tools = mapTools(a.capabilities, OPENCODE_TOOLS);
-    const toolLines = tools.map((t) => `  ${t}: true`).join('\n');
-    return [
-      '---',
-      `description: ${yamlString(a.description)}`,
-      `mode: ${a.primary ? 'primary' : 'subagent'}`,
-      `model: ${model}`,
-      'tools:',
-      toolLines,
-      '---',
-      '',
-    ].join('\n');
-  },
-  instructionFrontmatter() {
-    return '';
-  },
-  promptFrontmatter(p, model) {
-    return ['---', `description: ${yamlString(p.description)}`, `model: ${model}`, '---', ''].join('\n');
-  },
-  global: {
-    agentsDir: join(homedir(), '.config', 'opencode', 'agent'),
-    skillsDir: join(homedir(), '.config', 'opencode', 'skills'),
-    promptsDir: join(homedir(), '.config', 'opencode', 'command'),
-    instructionsDir: join(homedir(), '.config', 'opencode', 'instructions'),
-  },
-};
-
-export const PROVIDERS: Record<ProviderId, ProviderSpec> = { copilot, claude, opencode };
+export const PROVIDERS: Record<ProviderId, ProviderSpec> = { copilot, claude };
 
 export const PROVIDER_IDS = Object.keys(PROVIDERS) as ProviderId[];
 

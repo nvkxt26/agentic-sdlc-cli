@@ -8,7 +8,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 1. **Never assume.** If context is missing, STOP and ask numbered questions. (`{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`)
 2. **TOON for all hand-offs**, caveman FULL. (`{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md`, `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`)
 3. **Git conventions** (branch, commit). (`{{INSTRUCTIONS_DIR}}/git-conventions.instructions.md`)
-4. **Output mode = code** for all tickets in the batch (real implementation).
+4. **Real implementation code** for all tickets in the batch (complete code, no stubs).
 5. **Cache + context** reuse. (`{{INSTRUCTIONS_DIR}}/caching.instructions.md`)
 6. **Reuse project conventions**. (`{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`)
 7. **Approval gate per ticket** — mandatory after each `plan.toon`; never skip.

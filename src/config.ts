@@ -15,7 +15,6 @@ export function defaultConfig(): AgenticConfig {
     cacheDir: '.agentic/cache',
     registryDir: '.agentic/registry',
     reviewLoops: 5,
-    defaultOutputMode: 'comments',
     envVars: [
       'ATLASSIAN_BASE_URL',
       'ATLASSIAN_EMAIL',
@@ -24,7 +23,6 @@ export function defaultConfig(): AgenticConfig {
     ],
     modelOverrides: {},
     gitignoreSdlc: true,
-    graphify: true,
     modelLogging: true,
   };
 }

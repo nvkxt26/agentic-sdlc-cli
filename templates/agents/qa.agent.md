@@ -14,9 +14,9 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 4. Run the test suite. If failures are pre-existing and unrelated, report them separately; fix failures caused by the change.
 5. If the expected behavior under test is unclear, STOP and ask numbered questions. Never assume.
 
-In `comments` output mode, scaffold test cases with descriptive comments/`TODO` markers instead of full assertions; in `code` mode, write complete tests. (`{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`)
+Write complete tests with full assertions.
 
-In `code` mode: write NO new comments in the test code unless the user explicitly asked; keep existing correct comments. See `{{INSTRUCTIONS_DIR}}/code-style.instructions.md`.
+Write NO new comments in the test code unless the user explicitly asked; keep existing correct comments. See `{{INSTRUCTIONS_DIR}}/code-style.instructions.md`.
 
 ## Output (TOON, caveman FULL)
 Write to `{{DOCS_DIR}}/<JIRA>/qa-report.toon` and return the same TOON. Shape:

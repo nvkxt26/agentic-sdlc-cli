@@ -1,8 +1,8 @@
 # Caveman (for TOON output)
 
-Ultra-compressed style that cuts tokens while keeping full technical accuracy. In this workflow, **caveman FULL is always active when generating TOON** (inter-skill communication).
+Ultra-compressed style that cuts tokens while keeping full technical accuracy. In this workflow, **caveman FULL is on by default when generating TOON** (inter-skill communication). A prompt may be invoked with **`--no-caveman`** to bypass it for that run — then write hand-off values in normal prose instead.
 
-## Intensity = full (default, always-on for TOON)
+## Intensity = full (default, on for TOON unless `--no-caveman`)
 - fragments ok, drop articles, short words. Classic caveman.
 - no filler (just/really/basically), no pleasantries, no hedging.
 - keep tech exact. prefer symbols `→ =`.

@@ -6,7 +6,7 @@
  * SessionStart / SubagentStart / SubagentStop / Stop lifecycle events (honoured
  * by both VS Code Copilot Chat and the Copilot CLI). Copilot's hook payloads
  * expose the agent name (`agent_type`) and lifecycle, but — unlike Claude Code
- * and OpenCode — they do NOT expose the resolved model, and the transcript
+ * — they do NOT expose the resolved model, and the transcript
  * format is explicitly documented as unstable. So this logger records the
  * agent's *intended* (configured) model, read straight from the installed
  * `.github/agentic-sdlc/agents/<agent>.agent.md` frontmatter.
