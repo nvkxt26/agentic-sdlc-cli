@@ -7,7 +7,7 @@ Act as the **Epic Planner** agent:
 
 1. **Fetch the epic + children**: `agentic-sdlc run jira -- --epic <epic>`.
 2. **List repos + context**: `agentic-sdlc run repo-bridge -- list`.
-3. **Route each child ticket to its repo(s)** by matching intent against each repo's published context; when unclear, ask the repo's **Mimir** agent via `repo-bridge -- ask` / `repo-bridge -- answers`. A ticket may span multiple repos — split it into per-repo work items.
+3. **Route each child ticket to its repo(s)** by matching intent against each repo's published context — prefer `repo-bridge -- query --repo <name> --match <keyword>` for a scoped, token-cheap match; fall back to `repo-bridge -- read` for the full context only if inconclusive; when still unclear, ask the repo's **Mimir** agent via `repo-bridge -- ask` / `repo-bridge -- answers`. A ticket may span multiple repos — split it into per-repo work items.
 4. **Sequence** tickets by cross-repo dependencies (e.g. producer before consumer).
 5. **Emit** `{{DOCS_DIR}}/<epic>/epic-plan.toon` (TOON, caveman FULL by default; pass `--no-toon` / `--no-caveman` to override) with a per-ticket, per-repo, ordered plan.
 
