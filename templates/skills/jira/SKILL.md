@@ -47,6 +47,14 @@ agentic-sdlc run jira -- --jql "assignee = currentUser() AND status != Done"
 
 The script prints **TOON** on stdout (caveman FULL). For a single issue it extracts any Figma URLs found in the description/comments into a `figmaLinks[]` block so the figma skill can follow them.
 
+## Custom-field discovery (self-learning, automatic)
+Standard Jira fields alone miss data held in **custom fields** — most importantly **Acceptance Criteria** (`customfield_10903` on one account, but the id varies per Atlassian site). The skill discovers these automatically — no configuration, no env vars, no prompts:
+
+1. It reads the site's field catalog (`GET /rest/api/3/field`) and picks custom fields whose display name matches the acceptance heuristic (`/acceptance/i`).
+2. It requests those candidate ids alongside the standard fields and takes the first non-empty value as `acceptance[]`.
+3. On a miss it expands to `fields=*all`, re-scans, and **learns** the discovered field id.
+4. Learned ids are cached per Atlassian host in `.agentic/cache/jira-fields.json` (git-ignored) and tried **first** on later runs, so the cache grows and stays current. Any field / cache read failure degrades gracefully to the standard fields — the fetch never crashes.
+
 ## Sprint → JQL mapping
 When `--sprint` is provided, the skill builds a JQL query:
 - `--sprint <id>` (numeric) → `sprint = <id> AND assignee = currentUser() ORDER BY priority DESC, created ASC`
@@ -66,12 +74,16 @@ issue:
 labels[N]: ...
 acceptance[M]:
   - ...
+customFields[C]{name,value}:
+  ...
 comments[K]{author,body}:
   ...
 links[L]{type,key,summary}:
   ...
 figmaLinks[F]: ...
 ```
+
+`acceptance[]` holds the discovered Acceptance-Criteria lines (empty → `acceptance[0]`). `customFields[]` lists any other non-empty acceptance-matched custom fields and is omitted when empty.
 
 Epic:
 ```

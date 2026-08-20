@@ -8,6 +8,8 @@
  * Env:   ATLASSIAN_BASE_URL, ATLASSIAN_EMAIL, ATLASSIAN_API_TOKEN
  */
 import { pathToFileURL } from 'node:url';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 
 // ---- tiny TOON encoder (self-contained) -------------------------------------
 function scalar(v) {
@@ -74,6 +76,89 @@ export function buildJql({ jql, sprint, assignee, board }) {
   return `${query} ORDER BY priority DESC, created ASC`;
 }
 
+// ---- ADF → plain text (best effort) -----------------------------------------
+const ADF_BLOCK = /^(paragraph|heading|listItem|bulletList|orderedList|blockquote|codeBlock)$/;
+export function adfText(node) {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  let t = '';
+  if (node.text) t += node.text;
+  if (Array.isArray(node.content)) {
+    const childHasBlock = node.content.some((c) => c && ADF_BLOCK.test(c.type));
+    t += node.content.map(adfText).join(childHasBlock ? '\n' : ' ');
+  }
+  return t;
+}
+
+// ---- self-learning custom-field discovery -----------------------------------
+// Custom-field ids (e.g. Acceptance Criteria = customfield_10903) vary per
+// Atlassian account, so we never hardcode them. Instead we discover the field
+// by display-name heuristic, learn its id into a per-host cache, and reuse it
+// first on later runs — growing the cache when a new field is discovered.
+export const ACCEPTANCE_RE = /acceptance/i;
+
+/** Ids of custom fields whose display name matches `re` (default: acceptance). */
+export function matchAcceptanceFields(defs, re = ACCEPTANCE_RE) {
+  return (defs || [])
+    .filter((d) => d && d.custom && typeof d.name === 'string' && re.test(d.name))
+    .map((d) => d.id);
+}
+
+/** Normalize any Jira custom-field value shape to plain text. */
+export function parseFieldValue(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'string') return v.trim();
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (Array.isArray(v)) return v.map(parseFieldValue).filter(Boolean).join('; ');
+  if (typeof v === 'object') {
+    if (typeof v.value === 'string') return v.value.trim();
+    if (v.type || Array.isArray(v.content)) return adfText(v).trim();
+    if (typeof v.displayName === 'string') return v.displayName.trim();
+    if (typeof v.name === 'string') return v.name.trim();
+    return '';
+  }
+  return String(v).trim();
+}
+
+/** Host portion of the Atlassian base url — the per-account cache key. */
+export function hostKey(baseUrl) {
+  try {
+    return new URL(baseUrl).host;
+  } catch {
+    return String(baseUrl || 'default');
+  }
+}
+
+/** Prepend `id` to the learned list, deduped and learned-first. */
+export function mergeLearned(existing, id) {
+  const list = Array.isArray(existing) ? existing.slice() : [];
+  if (!id) return list;
+  return [id, ...list.filter((x) => x !== id)];
+}
+
+export function cacheFilePath(cwd = process.cwd()) {
+  return join(cwd, '.agentic', 'cache', 'jira-fields.json');
+}
+
+export function loadFieldCache(file = cacheFilePath()) {
+  try {
+    if (!existsSync(file)) return {};
+    return JSON.parse(readFileSync(file, 'utf8')) || {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveFieldCache(data, file = cacheFilePath()) {
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify(data, null, 2));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const issue = getArg('issue') || (!process.argv.includes('--epic') && !process.argv.includes('--jql') && !process.argv.includes('--sprint') && process.argv.find((a) => /^[A-Z][A-Z0-9]+-\d+$/.test(a)));
   const epic = getArg('epic');
@@ -106,22 +191,94 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     return res.json();
   }
 
-  // ---- ADF → plain text (best effort) -----------------------------------------
-  function adfText(node) {
-    if (!node) return '';
-    if (typeof node === 'string') return node;
-    let t = '';
-    if (node.text) t += node.text;
-    if (Array.isArray(node.content)) t += node.content.map(adfText).join(' ');
-    return t;
+  // Non-fatal variant: returns null on any failure so discovery/enrichment
+  // never crashes the core issue fetch.
+  async function getJsonSafe(url) {
+    try {
+      const res = await fetch(url, { headers: { Authorization: AUTH, Accept: 'application/json' } });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
   }
+
   const FIGMA_RE = /https?:\/\/(?:www\.)?figma\.com\/[^\s)"']+/g;
 
+  // All field definitions ({id,name,custom}); [] on failure.
+  async function fetchFieldDefs() {
+    const defs = await getJsonSafe(`${BASE}/rest/api/3/field`);
+    if (!Array.isArray(defs)) return [];
+    return defs.map((d) => ({ id: d.id, name: d.name || '', custom: !!d.custom }));
+  }
+
+  // First candidate id whose value is non-empty.
+  function pickAcceptance(fields, ids, idName) {
+    for (const id of ids) {
+      const value = parseFieldValue(fields?.[id]);
+      if (value) return { id, name: idName.get(id) || id, value };
+    }
+    return { id: null, name: '', value: '' };
+  }
+
   async function fetchIssue(key) {
-    const fields = 'summary,description,status,issuetype,labels,comment,issuelinks';
-    const url = `${BASE}/rest/api/3/issue/${encodeURIComponent(key)}?fields=${fields}`;
-    const data = await getJson(url);
-    const f = data.fields || {};
+    const STD = 'summary,description,status,issuetype,labels,comment,issuelinks';
+    const issueUrl = (spec) =>
+      `${BASE}/rest/api/3/issue/${encodeURIComponent(key)}?fields=${spec}`;
+
+    const cache = loadFieldCache();
+    const host = hostKey(BASE);
+    const entry = cache[host] || {};
+    const DEFS_TTL = 24 * 60 * 60 * 1000;
+    const defsFresh =
+      Array.isArray(entry.defs) && entry.ts && Date.now() - entry.ts < DEFS_TTL;
+    let defs = defsFresh ? entry.defs : await fetchFieldDefs();
+    if (!defsFresh && defs.length) {
+      entry.defs = defs;
+      entry.ts = Date.now();
+    }
+
+    const learned = Array.isArray(entry.acceptanceFieldIds) ? entry.acceptanceFieldIds : [];
+    const candidateIds = [];
+    for (const id of [...learned, ...matchAcceptanceFields(defs)]) {
+      if (id && !candidateIds.includes(id)) candidateIds.push(id);
+    }
+
+    let data = candidateIds.length
+      ? await getJsonSafe(issueUrl(`${STD},${candidateIds.join(',')}`))
+      : null;
+    if (!data) data = await getJson(issueUrl(STD));
+    let f = data.fields || {};
+
+    let idName = new Map((defs || []).map((d) => [d.id, d.name]));
+    let picked = pickAcceptance(f, candidateIds, idName);
+
+    // Learned/heuristic candidates yielded nothing → discover from all fields,
+    // learn the id, and grow the cache for future runs.
+    if (!picked.value) {
+      const freshDefs = await fetchFieldDefs();
+      if (freshDefs.length) {
+        defs = freshDefs;
+        entry.defs = freshDefs;
+        entry.ts = Date.now();
+        idName = new Map(freshDefs.map((d) => [d.id, d.name]));
+      }
+      const rescanIds = matchAcceptanceFields(defs).filter((id) => !candidateIds.includes(id));
+      if (rescanIds.length) {
+        const allData = await getJsonSafe(issueUrl('*all'));
+        if (allData?.fields) {
+          const picked2 = pickAcceptance(allData.fields, rescanIds, idName);
+          if (picked2.value) {
+            picked = picked2;
+            f = allData.fields;
+          }
+        }
+      }
+    }
+
+    if (picked.id) entry.acceptanceFieldIds = mergeLearned(learned, picked.id);
+    cache[host] = entry;
+    saveFieldCache(cache);
 
     const descText = adfText(f.description);
     const comments = (f.comment?.comments || []).map((c) => ({
@@ -139,7 +296,18 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const haystack = [descText, ...comments.map((c) => c.body)].join('\n');
     const figmaLinks = Array.from(new Set(haystack.match(FIGMA_RE) || []));
 
-    return {
+    const acceptance = picked.value
+      ? picked.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    const customFields = [];
+    for (const id of candidateIds) {
+      if (id === picked.id) continue;
+      const value = parseFieldValue(f[id]);
+      if (value) customFields.push({ name: idName.get(id) || id, value });
+    }
+
+    const result = {
       issue: {
         key: data.key,
         summary: f.summary || '',
@@ -148,10 +316,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       },
       labels: f.labels || [],
       description: descText,
-      comments,
-      links,
-      figmaLinks,
+      acceptance,
     };
+    if (customFields.length) result.customFields = customFields;
+    result.comments = comments;
+    result.links = links;
+    result.figmaLinks = figmaLinks;
+    return result;
   }
 
   async function fetchEpicChildren(epicKey) {
@@ -202,19 +373,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (epic) {
     const parent = await fetchIssue(epic);
     const children = await fetchEpicChildren(epic);
-    console.log(
-      toon({
-        epic: {
-          key: parent.issue.key,
-          summary: parent.issue.summary,
-          status: parent.issue.status,
-          type: parent.issue.type,
-          childCount: children.length,
-        },
-        description: parent.description,
-        children,
-      }),
-    );
+    const out = {
+      epic: {
+        key: parent.issue.key,
+        summary: parent.issue.summary,
+        status: parent.issue.status,
+        type: parent.issue.type,
+        childCount: children.length,
+      },
+      description: parent.description,
+    };
+    if (parent.acceptance?.length) out.acceptance = parent.acceptance;
+    if (parent.customFields?.length) out.customFields = parent.customFields;
+    out.children = children;
+    console.log(toon(out));
     return;
   }
 

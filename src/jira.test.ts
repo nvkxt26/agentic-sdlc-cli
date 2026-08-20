@@ -128,3 +128,75 @@ describe('buildJql logic (via dynamic import)', () => {
     expect(jql).toBe('assignee = currentUser() ORDER BY priority DESC, created ASC');
   });
 });
+
+describe('self-learning custom-field helpers', () => {
+  it('matchAcceptanceFields → only custom fields whose name matches /acceptance/i', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    const defs = [
+      { id: 'summary', name: 'Summary', custom: false },
+      { id: 'customfield_10903', name: 'Acceptance Criteria', custom: true },
+      { id: 'customfield_10001', name: 'Story Points', custom: true },
+      { id: 'customfield_20000', name: 'ACCEPTANCE notes', custom: true },
+      { id: 'customfield_30000', name: 'Acceptance Criteria', custom: false },
+    ];
+    expect(mod.matchAcceptanceFields(defs)).toEqual(['customfield_10903', 'customfield_20000']);
+  });
+
+  it('matchAcceptanceFields → empty/undefined defs → []', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.matchAcceptanceFields(undefined)).toEqual([]);
+    expect(mod.matchAcceptanceFields([])).toEqual([]);
+  });
+
+  it('parseFieldValue → plain string trimmed', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.parseFieldValue('  hi there  ')).toBe('hi there');
+  });
+
+  it('parseFieldValue → null/undefined → ""', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.parseFieldValue(null)).toBe('');
+    expect(mod.parseFieldValue(undefined)).toBe('');
+  });
+
+  it('parseFieldValue → option object uses .value', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.parseFieldValue({ value: 'High', id: '1' })).toBe('High');
+  });
+
+  it('parseFieldValue → array joins non-empty with "; "', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.parseFieldValue([{ value: 'A' }, { value: '' }, { value: 'B' }])).toBe('A; B');
+  });
+
+  it('parseFieldValue → ADF doc flattens to text', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    const adf = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Given a user' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Then it works' }] },
+      ],
+    };
+    expect(mod.parseFieldValue(adf)).toBe('Given a user\nThen it works');
+  });
+
+  it('mergeLearned → prepends new id, dedupes, learned-first', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.mergeLearned(['a', 'b'], 'c')).toEqual(['c', 'a', 'b']);
+    expect(mod.mergeLearned(['a', 'b'], 'b')).toEqual(['b', 'a']);
+    expect(mod.mergeLearned(undefined, 'x')).toEqual(['x']);
+    expect(mod.mergeLearned(['a'], '')).toEqual(['a']);
+  });
+
+  it('hostKey → derives host from base url, falls back gracefully', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.hostKey('https://acme.atlassian.net')).toBe('acme.atlassian.net');
+    expect(mod.hostKey('not-a-url')).toBe('not-a-url');
+  });
+
+  it('loadFieldCache → missing file → {}', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.loadFieldCache('/nonexistent/dir/does-not-exist.json')).toEqual({});
+  });
+});
