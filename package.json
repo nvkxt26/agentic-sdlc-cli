@@ -21,7 +21,7 @@
   "author": "",
   "license": "GPL-3.0-only",
   "dependencies": {
-    "@inquirer/prompts": "^8.5.2",
+    "@inquirer/prompts": "^8.6.0",
     "commander": "^15.0.0",
     "picocolors": "^1.1.1"
   },
