@@ -159,6 +159,27 @@ export function saveFieldCache(data, file = cacheFilePath()) {
   }
 }
 
+// ---- workflow transitions (status changes) ----------------------------------
+export function normalizeStatus(s) {
+  return String(s ?? '').trim().toLowerCase();
+}
+
+/** Transition whose target status name equals `to` (case-insensitive), or null. */
+export function findDirectTransition(transitions, to) {
+  const target = normalizeStatus(to);
+  return (transitions || []).find((t) => normalizeStatus(t?.to?.name) === target) || null;
+}
+
+/**
+ * Pick the next transition toward `to`: a direct one if available, otherwise the
+ * first transition whose target status has not been visited yet (greedy hop).
+ */
+export function chooseNextTransition(transitions, to, visited = new Set()) {
+  const direct = findDirectTransition(transitions, to);
+  if (direct) return direct;
+  return (transitions || []).find((t) => t?.to?.name && !visited.has(normalizeStatus(t.to.name))) || null;
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const issue = getArg('issue') || (!process.argv.includes('--epic') && !process.argv.includes('--jql') && !process.argv.includes('--sprint') && process.argv.find((a) => /^[A-Z][A-Z0-9]+-\d+$/.test(a)));
   const epic = getArg('epic');
@@ -166,9 +187,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const sprint = getArg('sprint');
   const assignee = getArg('assignee');
   const board = getArg('board');
+  const transitionTo = getArg('transition');
+  const listTransitions = process.argv.includes('--list-transitions');
 
   if (!issue && !epic && !jql && !sprint && !assignee && !board) {
     fail('missing --issue <KEY>, --epic <KEY>, --jql <query>, or --sprint <id|active>');
+  }
+  if ((transitionTo || listTransitions) && !issue) {
+    fail('--transition/--list-transitions require --issue <KEY>');
   }
 
   const base = process.env.ATLASSIAN_BASE_URL;
@@ -353,7 +379,79 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     }));
   }
 
+  async function fetchStatus(key) {
+    const data = await getJson(`${BASE}/rest/api/3/issue/${encodeURIComponent(key)}?fields=status`);
+    return data.fields?.status?.name || '';
+  }
+
+  async function fetchTransitions(key) {
+    const data = await getJson(`${BASE}/rest/api/3/issue/${encodeURIComponent(key)}/transitions`);
+    return (data.transitions || []).map((t) => ({
+      id: t.id,
+      name: t.name || '',
+      to: { id: t.to?.id || '', name: t.to?.name || '' },
+    }));
+  }
+
+  async function applyTransition(key, transitionId) {
+    let res;
+    try {
+      res = await fetch(`${BASE}/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, {
+        method: 'POST',
+        headers: { Authorization: AUTH, 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ transition: { id: String(transitionId) } }),
+      });
+    } catch (e) {
+      fail(`transition request failed: ${e.message}`);
+    }
+    if (!res.ok) fail(`http ${res.status} applying transition ${transitionId} on ${key}`);
+  }
+
   (async () => {
+  if (listTransitions) {
+    const current = await fetchStatus(issue);
+    const trs = await fetchTransitions(issue);
+    console.log(
+      toon({
+        transitions: { issue, status: current, count: trs.length },
+        available: trs.map((t) => ({ name: t.name, to: t.to.name })),
+      }),
+    );
+    return;
+  }
+
+  if (transitionTo) {
+    const maxHopsArg = Number(getArg('max-hops'));
+    const maxHops = Number.isFinite(maxHopsArg) && maxHopsArg > 0 ? maxHopsArg : 5;
+    const from = await fetchStatus(issue);
+    if (normalizeStatus(from) === normalizeStatus(transitionTo)) {
+      console.log(toon({ transition: { issue, from, to: from, hops: 0, status: 'already-there' } }));
+      return;
+    }
+    const visited = new Set([normalizeStatus(from)]);
+    const path = [];
+    let current = from;
+    for (let hop = 0; hop < maxHops; hop++) {
+      const trs = await fetchTransitions(issue);
+      const next = chooseNextTransition(trs, transitionTo, visited);
+      if (!next) {
+        const options = trs.map((t) => t.to.name).filter(Boolean).join(', ') || 'none';
+        fail(`cannot reach "${transitionTo}" from "${current}"; available: ${options}`);
+      }
+      await applyTransition(issue, next.id);
+      current = next.to.name;
+      path.push(current);
+      visited.add(normalizeStatus(current));
+      if (normalizeStatus(current) === normalizeStatus(transitionTo)) {
+        console.log(
+          toon({ transition: { issue, from, to: current, hops: path.length, status: 'done' }, path }),
+        );
+        return;
+      }
+    }
+    fail(`did not reach "${transitionTo}" within ${maxHops} hops; now at "${current}" (path: ${path.join(' → ')})`);
+  }
+
   if (jql || sprint || assignee || board) {
     try {
       const query = buildJql({ jql, sprint, assignee, board });

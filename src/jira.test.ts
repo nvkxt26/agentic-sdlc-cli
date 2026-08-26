@@ -200,3 +200,48 @@ describe('self-learning custom-field helpers', () => {
     expect(mod.loadFieldCache('/nonexistent/dir/does-not-exist.json')).toEqual({});
   });
 });
+
+describe('workflow transition helpers', () => {
+  const trs = [
+    { id: '11', name: 'Start Progress', to: { id: '2', name: 'In Progress' } },
+    { id: '21', name: 'Select', to: { id: '3', name: 'Selected for Development' } },
+    { id: '31', name: 'Back', to: { id: '1', name: 'To Do' } },
+  ];
+
+  it('normalizeStatus → trims + lowercases', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.normalizeStatus('  In Progress ')).toBe('in progress');
+    expect(mod.normalizeStatus(null)).toBe('');
+    expect(mod.normalizeStatus(undefined)).toBe('');
+  });
+
+  it('findDirectTransition → matches target status name case-insensitively', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.findDirectTransition(trs, 'in progress')).toMatchObject({ id: '11' });
+    expect(mod.findDirectTransition(trs, 'Done')).toBeNull();
+    expect(mod.findDirectTransition([], 'In Progress')).toBeNull();
+  });
+
+  it('chooseNextTransition → prefers direct hop to target', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    expect(mod.chooseNextTransition(trs, 'In Progress')).toMatchObject({ id: '11' });
+  });
+
+  it('chooseNextTransition → falls back to first unvisited target when no direct', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    const next = mod.chooseNextTransition(trs, 'Done', new Set(['to do']));
+    expect(next).toMatchObject({ id: '11' });
+  });
+
+  it('chooseNextTransition → skips already-visited targets', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    const next = mod.chooseNextTransition(trs, 'Done', new Set(['in progress', 'selected for development']));
+    expect(next).toMatchObject({ id: '31' });
+  });
+
+  it('chooseNextTransition → null when every target visited and none direct', async () => {
+    const mod = await import('../templates/skills/jira/scripts/jira.mjs');
+    const visited = new Set(['in progress', 'selected for development', 'to do']);
+    expect(mod.chooseNextTransition(trs, 'Done', visited)).toBeNull();
+  });
+});

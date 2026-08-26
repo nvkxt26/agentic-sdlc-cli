@@ -16,6 +16,7 @@ Act as the **Resolve-Assigned** agent. Follow its rules exactly.
 3. **Sequential processing** — for each ticket in order:
    - Create `{{DOCS_DIR}}/<ticket>/`.
    - Confirm the base branch (same as resolve-ticket: detect repo default, confirm with user, branch from base via git-branch `--base <name|default> --pull`).
+   - **Optional: mark ticket In Progress** — ask the user whether to move this ticket to **In Progress** (confirm the status name if the project differs). If approved, transition via the **jira** skill (`agentic-sdlc run jira -- --issue <ticket> --transition "In Progress"`, single/multi hop; preview with `--list-transitions`). If declined, skip. Never change status without explicit approval; a transition failure is non-fatal — report and continue.
    - Refresh codebase context via **context-builder** (context-sync with `--base <the confirmed base>`; rebuild if context-not-ancestor-of-base).
    - Gather requirements via **product** → `requirements.toon`.
    - Plan via **architect** against `{{CONTEXT_DIR}}/` (reuse cache) → `plan.toon`.

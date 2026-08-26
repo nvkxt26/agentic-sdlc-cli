@@ -26,6 +26,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 3. **Sequential loop** — for each ticket:
    - Create `{{DOCS_DIR}}/<ticket>/`.
    - **Base-branch selection** (mandatory): detect repo default (`origin/HEAD` → main/develop/master); confirm with user ("Is `<base>` the branch this work should be based on?"); create ticket branch from base via **git-branch** skill (`--base <name|default> --pull`).
+   - **Optional: mark ticket In Progress** — ask the user whether to move this ticket to **In Progress** (confirm the status name if the project differs). On approval, transition via the **jira** skill (`--issue <ticket> --transition "In Progress"`, single/multi hop; preview with `--list-transitions`). On decline, skip. Never change status without approval; a transition failure is non-fatal — report and continue.
    - **Context refresh** via **context-builder** agent (context-sync `--base <the confirmed base>`); if `context-not-ancestor-of-base` → full rebuild.
    - **Product** → `requirements.toon` (invoke **product** subagent).
    - **Architect** → `plan.toon` (invoke **architect** subagent against `{{CONTEXT_DIR}}/`).

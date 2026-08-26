@@ -28,6 +28,7 @@ Do not begin until the Preconditions above are satisfied. Then proceed:
 
 ```
 0. SETUP   → create {{DOCS_DIR}}/<JIRA>/, confirm base branch, create branch via the git-branch skill (from base)
+0a. STATUS  → (optional) ask user to mark the ticket In Progress; on approval transition via the jira skill
 0b. CONTEXT → context-builder agent: refresh {{CONTEXT_DIR}}/ from base-branch diff (context-sync skill, tied to base)
 1. PRODUCT → product agent: gather Jira details (+Figma). Output: requirements.toon
 2. ARCHITECT → architect agent: plan against context (reuse cache). Output: plan.toon
@@ -46,6 +47,17 @@ Before creating the ticket branch you MUST establish the correct **base branch**
 2. **Confirm with the user**: "Is `<base>` the branch this work should be based on?" — default to the repo default (main/develop) unless the ticket implies otherwise (e.g. a hotfix on a `release/*` branch). If the current branch is **not** the intended base, STOP and ask.
 3. **Navigate + pull**: create the ticket branch from the confirmed base using the git-branch skill with `--base <name|default> --pull` (it checks out the base, `--ff-only` pulls latest, then branches from it). The skill refuses if the working tree is dirty — commit/stash first.
 4. **Context vs base**: run the context-sync skill with `--base <the same base>` so context is tied to that base. Watch for `rebuildReason: base-branch-changed` or `context-not-ancestor-of-base` — these mean the cached context is more advanced than / diverged from the base (e.g. context built on `main` but work base is a behind-`main` release hotfix). When either fires, let the context-builder do a **full rebuild against the base** before planning; never plan against context that is ahead of the base.
+
+### STATUS — mark ticket In Progress (optional, user-gated)
+
+After SETUP and before CONTEXT, offer to move the Jira ticket to **In Progress**:
+
+1. **Ask** the user whether the ticket should be marked In Progress (confirm the exact target status name if the project's workflow uses a different label). Do not assume.
+2. **On approval**, transition via the **jira** skill: `agentic-sdlc run jira -- --issue <JIRA> --transition "In Progress"` — it follows the project workflow in one or more hops. Preview options first with `--list-transitions` if the current status is unclear.
+3. **On decline**, skip and proceed straight to CONTEXT.
+4. A transition failure (unreachable status, API error) is **non-fatal** — surface the `error:` TOON, note it, and continue the workflow.
+
+Never change ticket status without explicit user approval.
 
 Optional after `ARCHITECT`: if the user explicitly requests an implementation flowchart, invoke `plan-flowchart` with `plan.toon`, persist `{{DOCS_DIR}}/<JIRA>/plan-flowchart.md`, and pass back a short TOON receipt. Otherwise skip this step.
 
