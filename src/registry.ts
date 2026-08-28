@@ -444,6 +444,15 @@ export const PROMPTS: PromptDefinition[] = [
     outFile: 'review-pr',
   },
   {
+    id: 'resolve-pr-review',
+    description:
+      'Evaluate PR review comments, fix confirmed genuine issues, and validate the local changes.',
+    tier: 'reasoning-max',
+    capabilities: ['read', 'search', 'edit', 'run', 'changes', 'tests', 'todos'],
+    template: 'prompts/resolve-pr-review.prompt.md',
+    outFile: 'resolve-pr-review',
+  },
+  {
     id: 'add-customization',
     description:
       'Scaffold a new custom instruction, skill, agent, or prompt for this repo/workspace.',

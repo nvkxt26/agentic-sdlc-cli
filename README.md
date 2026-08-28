@@ -177,6 +177,7 @@ With Copilot installed, the scaffolded prompts are available as slash commands i
 the VS Code Copilot Chat input. Type `/` and pick one, then pass its argument:
 
 - `/resolve-ticket FXDOMAIN-1234` — run the full SDLC pipeline for one ticket.
+- `/resolve-pr-review 42` — evaluate PR review comments and fix confirmed genuine issues locally.
 - `/mimir "where is auth handled?"` — ask a grounded question about this repo.
 - `/plan-epic FXDOMAIN-1000` — plan an epic across the workspace repos.
 - `/resolve-assigned active` — batch-resolve tickets assigned to you in a sprint.
