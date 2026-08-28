@@ -11,7 +11,6 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
   - `glossary.toon` — domain terms, conventions, patterns.
   - `context-meta.json` — managed by the **context-sync** skill (last indexed commit). Do not hand-edit.
 - Cache: reuse the **cache** skill for anything expensive (key `context:<commit>`).
-- Optional knowledge graph: `graphify-out/graph.json` (+ `GRAPH_REPORT.md`), maintained by the **graphify** skill when the third-party `graphify` CLI is installed. Purely additive — richer cross-file relationships, god-nodes, and query/path/explain access on top of the TOON docs above. Never required; see step 6 below.
 
 ## Format: token-economic AND accurate (non-negotiable)
 All context files are **TOON** with **caveman FULL** (`{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md`, `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`). This is the most token-economic encoding and stays unambiguous/machine-parseable, so the **architect** and downstream agents consume it precisely without bloating their context window. Rules:
@@ -33,22 +32,16 @@ All context files are **TOON** with **caveman FULL** (`{{INSTRUCTIONS_DIR}}/toon
    agentic-sdlc run context-sync -- --context-dir {{CONTEXT_DIR}} --base release/1.2
    ```
    It returns `mode` (`full` | `incremental` | `noop`) and the changed files. The skill is **self-healing**: if the marker exists but `overview.toon`/`modules.toon`/`glossary.toon` are missing, it forces `mode: full` and reports `rebuildReason: context-docs-missing`. It also forces `mode: full` when the cached context is tied to a different base (`base-branch-changed`) or is ahead of / diverged from the base (`context-not-ancestor-of-base`). Trust `mode` — never treat the marker alone as proof context exists.
-2. **noop** → context already current AND all docs present; still do step 6 (graphify sync is cheap and idempotent), then stop. (If any doc were missing the skill would have returned `full`, not `noop`.)
+2. **noop** → context already current AND all docs present; stop. (If any doc were missing the skill would have returned `full`, not `noop`.)
 3. **full** (first run OR docs missing) → read the tree, build `overview.toon`, `modules.toon`, `glossary.toon` from scratch.
 4. **incremental** → read ONLY the changed files; update the affected entries in the context docs. Add new modules, prune deleted files, revise changed surfaces. Do not re-read unchanged areas.
 5. **Cache** the resulting context under key `context:<headCommit>` via the cache skill so the architect can reuse it.
-6. **Sync the knowledge graph (optional, additive).** Check availability, then refresh:
-   ```bash
-   agentic-sdlc run graphify -- status
-   agentic-sdlc run graphify -- build --update   # only if available: true
-   ```
-   If `available: false`, skip this step entirely — the TOON docs above are already complete and sufficient. If available, you may pull god-nodes / surprising-connections from `graphify-out/GRAPH_REPORT.md` into `overview.toon`'s notes so the architect sees cross-file relationships the flat module map doesn't capture. Never block or fail this agent's run on graphify — it is a bonus, not a dependency.
-7. **Advance the marker** once docs are written:
+6. **Advance the marker** once docs are written:
    ```bash
    agentic-sdlc run context-sync -- --mark --context-dir {{CONTEXT_DIR}}
    ```
    The skill refuses to stamp the marker if `overview.toon`/`modules.toon`/`glossary.toon` are missing — so only call this AFTER you have actually written the docs. Never pass `--force`.
-8. **Publish (workspace).** If this repo belongs to a workspace, publish the refreshed context to the shared registry so peer repos can consult it:
+7. **Publish (workspace).** If this repo belongs to a workspace, publish the refreshed context to the shared registry so peer repos can consult it:
    ```bash
    agentic-sdlc run repo-bridge -- publish
    ```

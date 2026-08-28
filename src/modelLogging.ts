@@ -10,8 +10,7 @@ import type { ProviderId } from './types.js';
  * `.agentic/logs/model-usage.log`.
  *
  * Ground-truth availability differs by runtime (see each block below):
- *   - OpenCode / Claude Code → the ACTUAL resolved model (from runtime events /
- *     the session transcript).
+ *   - Claude Code → the ACTUAL resolved model (from the session transcript).
  *   - GitHub Copilot → the INTENDED (configured) model only; Copilot's hook
  *     payloads do not expose the resolved model, so the logger records the
  *     agent's configured model and points to the chat UI for the real one.
@@ -90,15 +89,6 @@ export async function installModelLogging(
   written: string[],
 ): Promise<void> {
   switch (provider) {
-    case 'opencode':
-      // Auto-loaded plugin; reads the real providerID/modelID off message events.
-      await copyTemplate(
-        'opencode-model-logger.js',
-        join(cwd, '.opencode', 'plugins', 'agentic-model-logger.js'),
-        written,
-      );
-      break;
-
     case 'claude':
       // Hook script reads the actual model from the session transcript.
       await copyTemplate(

@@ -28,7 +28,6 @@ describe('config', () => {
       await writeConfig(dir, minimal as any);
       const loaded = await readConfig(dir);
       expect(loaded?.docsDir).toBe('docs');
-      expect(loaded?.defaultOutputMode).toBe('comments');
       expect(loaded?.reviewLoops).toBe(5);
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -51,7 +50,6 @@ describe('config', () => {
       const loaded = await readConfig(dir);
       expect(loaded?.providers).toEqual(['claude']);
       expect(loaded?.docsDir).toBe('legacy-docs');
-      expect(loaded?.defaultOutputMode).toBe('comments');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

@@ -1,6 +1,6 @@
 # Code style
 
-Rules for any **source code** you write or edit, in either output mode.
+Rules for any **source code** you write or edit.
 
 ## Comments — no new inline explanations; keep docs accurate
 Distinguish two kinds of comments:
@@ -10,7 +10,7 @@ Distinguish two kinds of comments:
 
 General:
 - **Keep** existing comments unless they are wrong or now inaccurate; update inaccurate docs rather than deleting them.
-- Applies in `code` mode. In `comments` mode the `// TODO(agentic): ...` placeholder markers ARE the deliverable — see `{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`.
+- All implementations are real code — no comment-only placeholders.
 
 ## Self-check before finishing a code change
 - Inspect the diff: added lines must contain no new **inline** explanatory comments unless the user asked.

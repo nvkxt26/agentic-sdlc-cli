@@ -56,34 +56,6 @@ export const CLAUDE_MODEL_TIERS: Record<ModelTier, ModelChoice> = {
   light: { primary: 'haiku', fallbacks: ['sonnet'] },
 };
 
-/**
- * OpenCode model ids per tier, in `provider/model` form. Defaults target the
- * `anthropic` provider; adjust to your configured provider (e.g.
- * `github-copilot/*`, `openai/*`) in `.agentic-sdlc.json` or the agent file.
- */
-export const OPENCODE_MODEL_TIERS: Record<ModelTier, ModelChoice> = {
-  'reasoning-max': {
-    primary: 'anthropic/claude-opus-4-1',
-    fallbacks: ['anthropic/claude-sonnet-4-5'],
-  },
-  'reasoning-high': {
-    primary: 'anthropic/claude-sonnet-4-5',
-    fallbacks: ['anthropic/claude-opus-4-1'],
-  },
-  coding: {
-    primary: 'anthropic/claude-sonnet-4-5',
-    fallbacks: ['anthropic/claude-3-5-haiku-latest'],
-  },
-  balanced: {
-    primary: 'anthropic/claude-sonnet-4-5',
-    fallbacks: ['anthropic/claude-3-5-haiku-latest'],
-  },
-  light: {
-    primary: 'anthropic/claude-3-5-haiku-latest',
-    fallbacks: ['anthropic/claude-sonnet-4-5'],
-  },
-};
-
 /** Human-friendly label for a tier, used in `list` output. */
 export const TIER_LABEL: Record<ModelTier, string> = {
   'reasoning-max': 'max reasoning',

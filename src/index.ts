@@ -14,8 +14,8 @@ program
   .name('agentic-sdlc')
   .description(
     'Installable agentic SDLC workflow CLI — scaffolds agents, deterministic skills,\n' +
-      'and an orchestrator for GitHub Copilot, Claude Code, or OpenCode. Agents\n' +
-      'communicate via TOON (caveman FULL).',
+      'and an orchestrator for GitHub Copilot or Claude Code. Agents communicate via\n' +
+      'TOON (caveman FULL).',
   )
   .version(packageVersion());
 
@@ -25,14 +25,10 @@ program
   .option('-y, --yes', 'accept defaults, skip prompts')
   .option('-d, --docs-dir <dir>', 'per-ticket docs directory')
   .option('-C, --cwd <dir>', 'target project directory (relative to current)')
-  .option('-p, --provider <ids>', 'comma list of providers: copilot,claude,opencode')
+  .option('-p, --provider <ids>', 'comma list of providers: copilot,claude')
   .option(
     '--global',
     'also install to each provider\'s user-level locations (available in every project)',
-  )
-  .option(
-    '--no-graphify',
-    'skip the optional graphify knowledge-graph layer entirely (default: attempt best-effort)',
   )
   .option(
     '--no-model-logging',
@@ -58,7 +54,7 @@ program
   .command('add <target>')
   .description('Add a single skill or agent to the current project.')
   .option('-m, --model <tier>', 'override model tier (reasoning-max|reasoning-high|coding|balanced|light)')
-  .option('-p, --provider <ids>', 'comma list of providers: copilot,claude,opencode')
+  .option('-p, --provider <ids>', 'comma list of providers: copilot,claude')
   .action((target, opts) => addCommand(target, opts));
 
 program
@@ -78,7 +74,7 @@ workspace
   .command('init')
   .description('Mark the current folder as a workspace, discover member repos, install workspace agents.')
   .option('-y, --yes', 'accept defaults, skip prompts')
-  .option('-p, --provider <ids>', 'comma list of providers: copilot,claude,opencode')
+  .option('-p, --provider <ids>', 'comma list of providers: copilot,claude')
   .option('-C, --cwd <dir>', 'workspace root directory (relative to current)')
   .action((opts) => workspaceInit(opts));
 

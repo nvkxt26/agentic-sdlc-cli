@@ -39,7 +39,7 @@ A skill runs via `agentic-sdlc run <name> -- <args>`. If it should be a first-cl
 ### 5. Verify
 - Deterministic script: run it once with sample input; confirm it prints valid TOON and exits 0, and a failure path prints an `error:` block with non-zero exit.
 - Instruction/agent/prompt: confirm frontmatter parses and the file is in the folder the provider auto-discovers.
-- Report what was created (paths), how to invoke it, and any follow-up (e.g. "re-run `init` to render for Claude/OpenCode").
+- Report what was created (paths), how to invoke it, and any follow-up (e.g. "re-run `init` to render for Claude").
 
 ### 6. (Optional) offer to make it reusable
 If the new thing is generally useful, offer to add it as a template under `templates/` + a registry entry so it ships to every install — per the self-improve rule (`{{INSTRUCTIONS_DIR}}/self-improve.instructions.md`). Only do this if the user confirms.

@@ -109,7 +109,30 @@ describe('resolve-assigned registry entries', () => {
   });
 
   it('PROMPTS array has expected count', () => {
-    expect(PROMPTS.length).toBe(8);
+    expect(PROMPTS.length).toBe(9);
+  });
+});
+
+describe('resolve-pr-review registry entry', () => {
+  it('registers the PR review resolution prompt', () => {
+    const prompt = PROMPTS.find((p) => p.id === 'resolve-pr-review');
+    expect(prompt).toBeDefined();
+    expect(prompt?.tier).toBe('reasoning-max');
+    expect(prompt?.template).toBe('prompts/resolve-pr-review.prompt.md');
+    expect(prompt?.outFile).toBe('resolve-pr-review');
+  });
+
+  it('gives the prompt the capabilities required to fix and validate comments', () => {
+    const prompt = PROMPTS.find((p) => p.id === 'resolve-pr-review');
+    expect(prompt?.capabilities).toEqual([
+      'read',
+      'search',
+      'edit',
+      'run',
+      'changes',
+      'tests',
+      'todos',
+    ]);
   });
 });
 
@@ -148,7 +171,7 @@ describe('resolve-code-scanning registry entries', () => {
   });
 
   it('PROMPTS array has expected count', () => {
-    expect(PROMPTS.length).toBe(8);
+    expect(PROMPTS.length).toBe(9);
   });
 });
 

@@ -66,7 +66,6 @@ function render(
     .replaceAll('{{CACHE_DIR}}', cacheDir)
     .replaceAll('{{REGISTRY_DIR}}', registryDir)
     .replaceAll('{{REVIEW_LOOPS}}', String(config.reviewLoops))
-    .replaceAll('{{DEFAULT_OUTPUT_MODE}}', config.defaultOutputMode)
     .replaceAll('{{AGENTS_DIR}}', provider.agentsDir)
     .replaceAll('{{SKILLS_DIR}}', provider.skillsDir)
     .replaceAll('{{INSTRUCTIONS_DIR}}', provider.instructionsDir)

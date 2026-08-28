@@ -24,6 +24,12 @@ agentic-sdlc run repo-bridge -- list
 agentic-sdlc run repo-bridge -- read --repo billing
 agentic-sdlc run repo-bridge -- read --repo billing --file modules.toon
 
+# scoped sub-query: only rows/lines matching <term> (+ their header), not the whole file
+# use this instead of `read` whenever you only need a narrow fact — cuts tokens sharply
+# on large published context
+agentic-sdlc run repo-bridge -- query --repo billing --match invoice
+agentic-sdlc run repo-bridge -- query --repo billing --match invoice --file modules.toon
+
 # ask a peer repo a question (queued to its inbox); prints a question id
 agentic-sdlc run repo-bridge -- ask --repo billing --question "does this repo own invoice PDF generation? which modules?"
 
@@ -51,3 +57,4 @@ repos[3]{name,lastCommit,files,updatedAt}:
 - `answers` exits non-zero while a reply is still `pending`, so shell polling works.
 - Keep context fresh: the **context-builder** agent runs `publish` after each refresh.
 - On failure (no workspace, unknown repo/file) the script emits an `error:` TOON block and exits non-zero. Never assume a peer's internals — read published context or ask.
+- Prefer `query` over `read` whenever you only need a narrow fact (does repo X own Y, which module handles Z). `query` does a case-insensitive substring match over each published `.toon` file's rows/lines and returns only the matches (plus their tabular header for context), instead of the whole file — this is the token-economic default. Fall back to `read` only when you genuinely need the full context (e.g. before writing a cross-repo plan).

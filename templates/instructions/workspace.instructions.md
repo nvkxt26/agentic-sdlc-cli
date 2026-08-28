@@ -11,7 +11,8 @@ When this repo is part of a **workspace** (a folder grouping several repos, mark
 - Read peers:
   ```bash
   agentic-sdlc run repo-bridge -- list                 # all repos + manifests
-  agentic-sdlc run repo-bridge -- read --repo <name>   # a peer's published context
+  agentic-sdlc run repo-bridge -- read --repo <name>   # a peer's published context (full)
+  agentic-sdlc run repo-bridge -- query --repo <name> --match <term>  # scoped sub-context (only matching rows) — prefer this for narrow questions to save tokens
   ```
 
 ## Agent-to-agent questions

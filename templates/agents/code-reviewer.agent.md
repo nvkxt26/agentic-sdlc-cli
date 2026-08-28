@@ -13,7 +13,7 @@ iteration i:
   1. Review ALL changed files (dev + qa).
   2. Emit review[] in TOON: each item {file,line,severity,issue,fix}.
   3. If no blocking/major items → status=clean, STOP loop.
-  4. Otherwise apply fixes (respecting current output mode), re-run build/tests,
+  4. Otherwise apply fixes, re-run build/tests,
      then start iteration i+1 reviewing the UPDATED code.
 Stop when clean OR after {{REVIEW_LOOPS}} iterations (status=needs-human).
 ```

@@ -7,10 +7,10 @@ Default model tier for this agent: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_F
 ## Hard rules (apply to every step)
 
 1. **Never assume.** If any requirement is unclear or missing, STOP and ask the user concise, numbered questions before continuing. See `{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`.
-2. **TOON for all hand-offs.** Every input/output passed between skills MUST be TOON. Caveman **FULL** is always active when producing TOON. See `{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md` and `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`.
+2. **TOON + caveman by default.** Hand-offs between stages use TOON with caveman FULL by default. The user may bypass either per run with `--no-toon` / `--no-caveman` (then use plain Markdown / normal prose instead); honor those flags when passed. See `{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md` and `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`.
 3. **Docs folder per ticket.** On start, create `{{DOCS_DIR}}/<JIRA-TICKET>/` and store every artifact there (requirements, plan, figma, review logs). See `{{INSTRUCTIONS_DIR}}/workflow-docs.instructions.md`.
 4. **Git conventions.** Branch `<feat|fix|release|chore>/<JIRA>_<2-3 word desc>`; commit `[JIRA-TICKET]: <description>`. See `{{INSTRUCTIONS_DIR}}/git-conventions.instructions.md`.
-5. **Output mode.** Default is `{{DEFAULT_OUTPUT_MODE}}` — write COMMENTS marking where code goes, unless the user overrides to `code`. See `{{INSTRUCTIONS_DIR}}/output-mode.instructions.md`.
+5. **Code only.** All implementations are real code — the developer and QA stages write complete implementation code and tests, never comment-only stubs. See `{{INSTRUCTIONS_DIR}}/code-style.instructions.md`.
 6. **Cache + context.** Reuse the cache skill for expensive fetches and have the architect plan against generated context. See `{{INSTRUCTIONS_DIR}}/caching.instructions.md`. `{{CONTEXT_DIR}}/` and `{{CACHE_DIR}}/` are git-ignored.
 7. **Reuse project conventions.** Prefer existing components/utilities/patterns from the codebase context over generic ones. See `{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`.
 8. **Plan approval gate.** After architect produces `plan.toon`, STOP and ask the user to approve the plan before any source code edits. No developer/QA/code-review stages before approval.
@@ -28,11 +28,12 @@ Do not begin until the Preconditions above are satisfied. Then proceed:
 
 ```
 0. SETUP   → create {{DOCS_DIR}}/<JIRA>/, confirm base branch, create branch via the git-branch skill (from base)
+0a. STATUS  → (optional) ask user to mark the ticket In Progress; on approval transition via the jira skill
 0b. CONTEXT → context-builder agent: refresh {{CONTEXT_DIR}}/ from base-branch diff (context-sync skill, tied to base)
 1. PRODUCT → product agent: gather Jira details (+Figma). Output: requirements.toon
 2. ARCHITECT → architect agent: plan against context (reuse cache). Output: plan.toon
 2b. APPROVAL → ask user to approve `plan.toon`; pause until approved
-3. DEVELOP → senior-developer agent: design comments (default) or code. Output: dev-report.toon
+3. DEVELOP → senior-developer agent: write real implementation code. Output: dev-report.toon
 4. QA      → qa agent: unit/integration tests. Output: qa-report.toon
 5. REVIEW  → code-reviewer agent: loop up to {{REVIEW_LOOPS}}x until clean. Output: review-log.toon
 6. WRAP    → commit via git-commit skill, summarize for the user (normal prose)
@@ -46,6 +47,17 @@ Before creating the ticket branch you MUST establish the correct **base branch**
 2. **Confirm with the user**: "Is `<base>` the branch this work should be based on?" — default to the repo default (main/develop) unless the ticket implies otherwise (e.g. a hotfix on a `release/*` branch). If the current branch is **not** the intended base, STOP and ask.
 3. **Navigate + pull**: create the ticket branch from the confirmed base using the git-branch skill with `--base <name|default> --pull` (it checks out the base, `--ff-only` pulls latest, then branches from it). The skill refuses if the working tree is dirty — commit/stash first.
 4. **Context vs base**: run the context-sync skill with `--base <the same base>` so context is tied to that base. Watch for `rebuildReason: base-branch-changed` or `context-not-ancestor-of-base` — these mean the cached context is more advanced than / diverged from the base (e.g. context built on `main` but work base is a behind-`main` release hotfix). When either fires, let the context-builder do a **full rebuild against the base** before planning; never plan against context that is ahead of the base.
+
+### STATUS — mark ticket In Progress (optional, user-gated)
+
+After SETUP and before CONTEXT, offer to move the Jira ticket to **In Progress**:
+
+1. **Ask** the user whether the ticket should be marked In Progress (confirm the exact target status name if the project's workflow uses a different label). Do not assume.
+2. **On approval**, transition via the **jira** skill: `agentic-sdlc run jira -- --issue <JIRA> --transition "In Progress"` — it follows the project workflow in one or more hops. Preview options first with `--list-transitions` if the current status is unclear.
+3. **On decline**, skip and proceed straight to CONTEXT.
+4. A transition failure (unreachable status, API error) is **non-fatal** — surface the `error:` TOON, note it, and continue the workflow.
+
+Never change ticket status without explicit user approval.
 
 Optional after `ARCHITECT`: if the user explicitly requests an implementation flowchart, invoke `plan-flowchart` with `plan.toon`, persist `{{DOCS_DIR}}/<JIRA>/plan-flowchart.md`, and pass back a short TOON receipt. Otherwise skip this step.
 

@@ -15,12 +15,11 @@ export type ModelTier =
  * (agents/skills/instructions/prompts) to its own directory layout, frontmatter
  * format, and model naming. See {@link ./providers.ts}.
  */
-export type ProviderId = 'copilot' | 'claude' | 'opencode';
+export type ProviderId = 'copilot' | 'claude';
 
 /**
  * Provider-neutral capability an agent needs. Each provider translates these to
- * its own tool names (e.g. `read` → Copilot `codebase`, Claude `Read`,
- * OpenCode `read`).
+ * its own tool names (e.g. `read` → Copilot `codebase`, Claude `Read`).
  */
 export type Capability =
   | 'read'
@@ -54,8 +53,8 @@ export interface AgentDefinition {
   order: number;
   /**
    * A top-level agent the user drives directly (orchestrator, mimir,
-   * epic-planner). Maps to OpenCode `mode: primary`. Persona roles are
-   * sub-agents delegated to by the orchestrator.
+   * epic-planner). Persona roles are sub-agents delegated to by the
+   * orchestrator.
    */
   primary?: boolean;
   /**
@@ -138,8 +137,6 @@ export interface AgenticConfig {
   registryDir?: string;
   /** Default code-review loop iterations. */
   reviewLoops: number;
-  /** Default output mode: 'comments' (default) or 'code'. */
-  defaultOutputMode: 'comments' | 'code';
   /** Names of env vars the install expects to be set. */
   envVars: string[];
   /** Per-agent / per-skill model tier overrides. */
@@ -152,19 +149,11 @@ export interface AgenticConfig {
   gitignoreSdlc?: boolean;
   /**
    * Whether `init` installs the per-provider model-usage logger (records which
-   * model each agent runs on to `.agentic/logs/model-usage.log`). OpenCode and
-   * Claude Code log the actual resolved model; Copilot logs the intended
-   * (configured) model. Default `true`; disable with `init --no-model-logging`.
+   * model each agent runs on to `.agentic/logs/model-usage.log`). Claude Code
+   * logs the actual resolved model; Copilot logs the intended (configured)
+   * model. Default `true`; disable with `init --no-model-logging`.
    */
   modelLogging?: boolean;
-  /**
-   * Whether `init` wired in the optional graphify knowledge-graph layer
-   * (https://github.com/Graphify-Labs/graphify) for context-builder/mimir
-   * to use when the `graphify` CLI is present. Purely additive — the TOON
-   * context keeps working unchanged when this is `false` or graphify isn't
-   * installed. Default `true` (best-effort; never blocks install).
-   */
-  graphify?: boolean;
 }
 
 /**

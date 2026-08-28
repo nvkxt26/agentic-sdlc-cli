@@ -8,7 +8,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 1. **Never assume.** If context is missing, STOP and ask numbered questions. (`{{INSTRUCTIONS_DIR}}/no-assume.instructions.md`)
 2. **TOON for all hand-offs**, caveman FULL. (`{{INSTRUCTIONS_DIR}}/toon-communication.instructions.md`, `{{INSTRUCTIONS_DIR}}/caveman.instructions.md`)
 3. **Git conventions** (branch, commit). (`{{INSTRUCTIONS_DIR}}/git-conventions.instructions.md`)
-4. **Output mode = code** for all tickets in the batch (real implementation).
+4. **Real implementation code** for all tickets in the batch (complete code, no stubs).
 5. **Cache + context** reuse. (`{{INSTRUCTIONS_DIR}}/caching.instructions.md`)
 6. **Reuse project conventions**. (`{{INSTRUCTIONS_DIR}}/project-conventions.instructions.md`)
 7. **Approval gate per ticket** — mandatory after each `plan.toon`; never skip.
@@ -26,6 +26,7 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
 3. **Sequential loop** — for each ticket:
    - Create `{{DOCS_DIR}}/<ticket>/`.
    - **Base-branch selection** (mandatory): detect repo default (`origin/HEAD` → main/develop/master); confirm with user ("Is `<base>` the branch this work should be based on?"); create ticket branch from base via **git-branch** skill (`--base <name|default> --pull`).
+   - **Optional: mark ticket In Progress** — ask the user whether to move this ticket to **In Progress** (confirm the status name if the project differs). On approval, transition via the **jira** skill (`--issue <ticket> --transition "In Progress"`, single/multi hop; preview with `--list-transitions`). On decline, skip. Never change status without approval; a transition failure is non-fatal — report and continue.
    - **Context refresh** via **context-builder** agent (context-sync `--base <the confirmed base>`); if `context-not-ancestor-of-base` → full rebuild.
    - **Product** → `requirements.toon` (invoke **product** subagent).
    - **Architect** → `plan.toon` (invoke **architect** subagent against `{{CONTEXT_DIR}}/`).

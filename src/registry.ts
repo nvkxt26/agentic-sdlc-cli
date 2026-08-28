@@ -21,7 +21,7 @@ export const AGENTS: AgentDefinition[] = [
     // GitHub Copilot: Copilot caps a subagent's requested model at the cost
     // tier of the *invoking* agent's own model — a cheaper orchestrator would
     // silently downgrade every persona it delegates to (architect, reviewer,
-    // etc.) to its own tier. Claude Code/OpenCode don't have this constraint,
+    // etc.) to its own tier. Claude Code doesn't have this constraint,
     // but the tier is shared across providers for one consistent config.
     tier: 'reasoning-max',
     capabilities: [
@@ -98,7 +98,7 @@ export const AGENTS: AgentDefinition[] = [
     id: 'senior-developer',
     name: 'Senior Developer',
     description:
-      'Produces development design (comments by default) or real code, ensures it builds and covers requirements.',
+      'Produces real implementation code, ensures it builds and covers requirements.',
     tier: 'coding',
     capabilities: ['read', 'search', 'usages', 'edit', 'run', 'tests', 'changes'],
     template: 'agents/senior-developer.agent.md',
@@ -304,17 +304,6 @@ export const SKILLS: SkillDefinition[] = [
     standalone: true,
   },
   {
-    id: 'graphify',
-    name: 'Graphify Bridge',
-    description:
-      'Optional knowledge-graph layer on top of the TOON codebase context: wraps the third-party graphify CLI to build/query a queryable graph of the repo. Degrades gracefully when graphify is not installed.',
-    tier: 'light',
-    templateDir: 'graphify',
-    scripts: ['scripts/graphify.mjs'],
-    requiresEnv: [],
-    standalone: true,
-  },
-  {
     id: 'no-added-comments',
     name: 'No Added Comments',
     description:
@@ -369,12 +358,6 @@ export const INSTRUCTIONS: InstructionDefinition[] = [
     description: 'Never assume — ask questions when requirements are unclear.',
     template: 'instructions/no-assume.instructions.md',
     outFile: 'no-assume',
-  },
-  {
-    id: 'output-mode',
-    description: 'Default to writing comments where code goes; override to emit real code.',
-    template: 'instructions/output-mode.instructions.md',
-    outFile: 'output-mode',
   },
   {
     id: 'code-style',
@@ -459,6 +442,15 @@ export const PROMPTS: PromptDefinition[] = [
     ],
     template: 'prompts/review-pr.prompt.md',
     outFile: 'review-pr',
+  },
+  {
+    id: 'resolve-pr-review',
+    description:
+      'Evaluate PR review comments, fix confirmed genuine issues, and validate the local changes.',
+    tier: 'reasoning-max',
+    capabilities: ['read', 'search', 'edit', 'run', 'changes', 'tests', 'todos'],
+    template: 'prompts/resolve-pr-review.prompt.md',
+    outFile: 'resolve-pr-review',
   },
   {
     id: 'add-customization',

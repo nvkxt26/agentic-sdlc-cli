@@ -16,6 +16,8 @@
  *   inbox                                   list unanswered questions for THIS repo
  *   answer --id <id> (--file <f>|--text <s>) write an answer for a question id
  *   answers --id <id>                       read the answer for a question id
+ *   query --repo <name> --match <term>      scoped sub-context: only matching rows/lines
+ *         [--file <f.toon>]                 (default: all published .toon files), not the whole file
  *
  * Pure git + fs, zero dependencies.
  */
@@ -225,6 +227,41 @@ function answers() {
   process.exit(1);
 }
 
+function query() {
+  const name = getArg('repo');
+  const match = getArg('match');
+  if (!name) fail('missing --repo <name>');
+  if (!match) fail('missing --match <term> (scopes the result to matching rows/lines only)');
+  const dir = join(REGISTRY, name, 'context');
+  if (!existsSync(dir)) fail(`repo "${name}" has no published context. Ask it to run: repo-bridge -- publish`);
+  const only = getArg('file');
+  const files = (only ? [only] : readdirSync(dir).filter((f) => f.endsWith('.toon')))
+    .filter((f) => existsSync(join(dir, f)));
+  if (files.length === 0) fail(only ? `file "${only}" not found for repo "${name}"` : `no .toon files published for repo "${name}"`);
+
+  const needle = match.toLowerCase();
+  const sections = [];
+  let totalHits = 0;
+  for (const f of files) {
+    const lines = readFileSync(join(dir, f), 'utf8').split('\n');
+    const kept = [];
+    let lastHeader = null;
+    for (const line of lines) {
+      const isHeader = /^\S/.test(line) || (/^ {2}\S.*:$/.test(line) && !/[,{}]/.test(line));
+      if (isHeader) { lastHeader = line; continue; }
+      if (line.toLowerCase().includes(needle)) {
+        if (lastHeader && kept[kept.length - 1] !== lastHeader) kept.push(lastHeader);
+        kept.push(line);
+        totalHits += 1;
+        lastHeader = null; // header already emitted, avoid dup on next hit in same block
+      }
+    }
+    if (kept.length > 0) sections.push({ file: f, body: kept.join('\n') });
+  }
+  console.log(toon({ repoBridge: { action: 'query', repo: name, match, filesSearched: files.length, hits: totalHits } }));
+  for (const s of sections) console.log(`\n# ${s.file}\n${s.body}`);
+}
+
 switch (action) {
   case 'publish': doPublish(); break;
   case 'list': listRepos(); break;
@@ -233,6 +270,7 @@ switch (action) {
   case 'inbox': inbox(); break;
   case 'answer': answer(); break;
   case 'answers': answers(); break;
+  case 'query': query(); break;
   default:
-    fail(`unknown action "${action || ''}". Use: publish|list|read|ask|inbox|answer|answers`);
+    fail(`unknown action "${action || ''}". Use: publish|list|read|ask|inbox|answer|answers|query`);
 }

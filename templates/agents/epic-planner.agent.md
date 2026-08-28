@@ -24,8 +24,12 @@ Default model tier: `{{TIER}}` (`{{MODEL}}`; fallbacks: {{MODEL_FALLBACKS}}). Pr
    agentic-sdlc run repo-bridge -- list
    ```
 3. **Route each ticket to repo(s).** For every child ticket, decide which repo(s) must change:
-   - Match the ticket's intent against each repo's published context (`overview.toon`, `modules.toon`, `glossary.toon`).
-   - When unclear, **ask the repo directly** — post the question to its Mimir agent via repo-bridge and read the answer:
+   - Match the ticket's intent against each repo's published context. Prefer a scoped lookup over reading the whole file — pull a keyword from the ticket (feature/module/capability name) and query:
+     ```bash
+     agentic-sdlc run repo-bridge -- query --repo <name> --match "<keyword>"
+     ```
+     Only fall back to `agentic-sdlc run repo-bridge -- read --repo <name>` (full `overview.toon`/`modules.toon`/`glossary.toon`) when the keyword match is inconclusive.
+   - When still unclear, **ask the repo directly** — post the question to its Mimir agent via repo-bridge and read the answer:
      ```bash
      agentic-sdlc run repo-bridge -- ask --repo <name> --question "does this repo own <capability>? which modules?"
      agentic-sdlc run repo-bridge -- answers --id <questionId>
